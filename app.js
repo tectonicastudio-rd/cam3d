@@ -402,7 +402,7 @@ $('#ar').addEventListener('beforexrselect', e => e.preventDefault());
 (function permCard() {
   const ar = $('#arCard'); if (!ar) return;
   const c = document.createElement('div'); c.className = 'card'; c.id = 'permCard';
-  c.innerHTML = '<div class="row" style="justify-content:space-between;align-items:center"><b>Permisos de la cámara</b><button class="btn sm" id="permBtn">📷 Activar cámara</button></div><div id="permList" style="margin-top:8px;font:600 13px/1.7 system-ui"></div><div id="permHelp" class="mut" style="display:none;font-size:12.5px;line-height:1.5;margin-top:6px"></div>';
+  c.innerHTML = '<div class="row" style="justify-content:space-between;align-items:center"><b>Permisos de la cámara</b><span><button class="btn sec sm" id="diagBtn">🔍 Diagnóstico</button> <button class="btn sm" id="permBtn">📷 Activar cámara</button></span></div><div id="permList" style="margin-top:8px;font:600 13px/1.7 system-ui"></div><div id="permHelp" class="mut" style="display:none;font-size:12.5px;line-height:1.5;margin-top:6px"></div>';
   ar.after(c);
   const row = (ok, t) => `<div>${ok === true ? '✅' : ok === false ? '❌' : '⏳'} ${t}</div>`;
   async function paint() {
@@ -418,6 +418,21 @@ $('#ar').addEventListener('beforexrselect', e => e.preventDefault());
     try { const st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); st.getTracks().forEach(t => t.stop()); toast('✅ Cámara activada. Ya puedes usar IA 3D y Automático'); window.SFX && SFX.play('ok'); }
     catch (e) { toast('No se concedió el permiso de cámara. Sigue los pasos que aparecen en la tarjeta.', 5000); }
     paint();
+  };
+  $('#diagBtn').onclick = async () => {
+    const L = []; const add = t => { L.push(t); $('#permHelp').style.display = ''; $('#permHelp').innerHTML = '<b>Diagnóstico AR</b><br>' + L.map(x => x.replace(/</g, '&lt;')).join('<br>') + '<br><button class="btn sec sm" id="diagCopy" style="margin-top:8px">Copiar informe</button>'; const b = $('#diagCopy'); if (b) b.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(L.join('\n')).then(() => toast('Informe copiado: pégalo en el chat'), () => toast('Haz captura de pantalla del informe')); }; };
+    add('Versión: ' + navigator.userAgent.replace(/.*(Android [\d.]+).*?(Chrome\/[\d.]+).*/, '$1 · $2'));
+    add('Modo: ' + (document.referrer.startsWith('android-app://') ? 'App instalada (TWA)' : matchMedia('(display-mode: standalone)').matches ? 'App instalada' : 'Navegador'));
+    add('Conexión segura: ' + window.isSecureContext + ' · WebXR: ' + !!navigator.xr);
+    if (!navigator.xr) return;
+    try { add('immersive-ar soportado: ' + await navigator.xr.isSessionSupported('immersive-ar')); } catch (e) { add('isSessionSupported error: ' + e.name + ' ' + e.message); }
+    try { const q = await navigator.permissions.query({ name: 'camera' }); add('Permiso cámara: ' + q.state); } catch (e) { add('Permiso cámara: no consultable'); }
+    const tests = [['mínima', {}], ['hit-test', { requiredFeatures: ['hit-test'] }], ['hit-test + overlay', { requiredFeatures: ['hit-test'], optionalFeatures: ['dom-overlay'], domOverlay: { root: $('#ar') } }]];
+    for (const [n, cfg] of tests) {
+      try { const ses = await navigator.xr.requestSession('immersive-ar', cfg); add('✅ Sesión ' + n + ': OK · funciones: ' + ((ses.enabledFeatures || []).join(', ') || '—')); await ses.end(); await new Promise(r => setTimeout(r, 600)); }
+      catch (e) { add('❌ Sesión ' + n + ': ' + e.name + ' — ' + e.message); }
+    }
+    add('Fin del diagnóstico.');
   };
   paint();
 })();
@@ -514,10 +529,30 @@ function openChat() { $('#aiChat').classList.add('on'); $('#aiEng').textContent 
 async function sendChat(q) {
   q = (q || $('#aiIn').value).trim(); if (!q) return; $('#aiIn').value = ''; addMsg('me', esc(q)); const id = addMsg('ai', '<i class="dots"><b></b><b></b><b></b></i>');
   if (!window.AIB) { setMsg(id, 'La IA aún se está cargando, intenta de nuevo.'); return; }
-  try { const t = await AIB.ask(q, projCtx(), chatHist, w => setMsg(id, '⏳ IA gratuita ocupada, respondo en ' + w + ' s… (con una clave gratis de Gemini en ⚙️ es inmediato)')); chatHist.push({ role: 'user', content: q }, { role: 'assistant', content: t }); setMsg(id, md(t)); $('#aiEng').textContent = AIB.engine; window.SFX && SFX.play('ok'); }
+  try { const t = await AIB.ask(q, projCtx(), chatHist, w => setMsg(id, '⏳ IA gratuita ocupada, respondo en ' + w + ' s… (con una clave gratis de Gemini en ⚙️ es inmediato)')); chatHist.push({ role: 'user', content: q }, { role: 'assistant', content: t }); setMsg(id, md(t)); $('#aiEng').textContent = AIB.engine; window.SFX && SFX.play('ok'); if (viaVoz) { viaVoz = false; try { const u = new SpeechSynthesisUtterance(tex(t).replace(/[*#•>]/g, ' ').slice(0, 900)); u.lang = 'es-ES'; const v = speechSynthesis.getVoices().find(v => /^es/i.test(v.lang)); if (v) u.voice = v; u.rate = 1.05; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) { } } }
   catch (e) { setMsg(id, 'Sin respuesta de la IA (' + esc(e.message) + '). Si estás sin internet, las herramientas de medición siguen funcionando.'); }
 }
-$('#aiSend').onclick = () => sendChat(); $('#aiIn').onkeydown = e => { if (e.key === 'Enter') sendChat(); };
+$('#aiSend').onclick = () => sendChat();
+// ---- micrófono: dictado por voz con envío automático
+let viaVoz = false;
+(function mic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition; const send = $('#aiSend');
+  const st = document.createElement('style'); st.textContent = '#aiMic{border:0;border-radius:14px;width:50px;flex:none;background:rgba(255,255,255,.08);border:1px solid var(--line);color:#fff;font-size:20px;position:relative}#aiMic.on{background:linear-gradient(135deg,#ef4444,#db2777);box-shadow:0 0 0 0 rgba(239,68,68,.7);animation:micp 1.2s infinite}@keyframes micp{70%{box-shadow:0 0 0 14px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}#aiIn.rec{border-color:#ef4444;box-shadow:0 0 12px rgba(239,68,68,.4)}'; document.head.appendChild(st);
+  const b = document.createElement('button'); b.id = 'aiMic'; b.type = 'button'; b.setAttribute('aria-label', 'Hablar'); b.textContent = '🎤'; send.parentNode.insertBefore(b, send);
+  if (!SR) { b.onclick = () => toast('Tu navegador no tiene dictado por voz. Usa el micrófono del teclado del teléfono.', 4500); return; }
+  let rec = null, on = false, finalTxt = '';
+  const stop = () => { on = false; b.classList.remove('on'); b.textContent = '🎤'; $('#aiIn').classList.remove('rec'); $('#aiIn').placeholder = 'Pregunta sobre tu proyecto…'; };
+  b.onclick = () => {
+    if (on && rec) { rec.stop(); return; }
+    try { speechSynthesis.cancel(); } catch (e) { }
+    rec = new SR(); rec.lang = 'es-ES'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1; finalTxt = '';
+    rec.onstart = () => { on = true; b.classList.add('on'); b.textContent = '■'; $('#aiIn').classList.add('rec'); $('#aiIn').value = ''; $('#aiIn').placeholder = 'Te escucho… habla ahora'; window.SFX && SFX.play('tick'); if (navigator.vibrate) navigator.vibrate(20); };
+    rec.onresult = e => { let interim = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finalTxt += t; else interim += t; } $('#aiIn').value = (finalTxt + interim).trim(); };
+    rec.onerror = e => { stop(); const m = { 'not-allowed': 'Permite el micrófono para CAM3D (Ajustes › Apps › Chrome › Permisos › Micrófono)', 'no-speech': 'No te escuché, intenta de nuevo', network: 'El dictado necesita internet', 'audio-capture': 'No se encontró micrófono' }[e.error]; if (m) toast(m, 4000); };
+    rec.onend = () => { stop(); const q = $('#aiIn').value.trim(); if (q) { viaVoz = true; window.SFX && SFX.play('ok'); sendChat(q); } };
+    try { rec.start(); } catch (e) { stop(); toast('No se pudo iniciar el micrófono', 3500); }
+  };
+})(); $('#aiIn').onkeydown = e => { if (e.key === 'Enter') sendChat(); };
 $$('[data-aiq]').forEach(b => b.onclick = () => sendChat(b.dataset.aiq));
 $$('[data-chat]').forEach(b => b.onclick = () => { $('#drawer') && $('#drawer').classList.remove('on'); $('#scrim') && $('#scrim').classList.remove('on'); openChat(); });
 $('#aiClose').onclick = () => $('#aiChat').classList.remove('on');
