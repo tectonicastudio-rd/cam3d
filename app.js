@@ -466,7 +466,8 @@ function resultCard(r) {
 const roomCtx = r => ({ name: r.name, h: r.h, area: C.polyArea(r.pts), per: C.polyPerimeter(r.pts), walls: C.walls(r).map(w => w.len) });
 const projCtx = () => ({ name: P.name, rooms: P.rooms.map(roomCtx), measures: P.measures.map(m => ({ etiqueta: m.label, m: +C.dist3(m.a, m.b).toFixed(3) })), pts: P.cloud.pos.length / 3 | 0, solids: (P.solids || []).map(s => s.name) });
 const esc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-const md = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/^#+\s*(.+)$/gm, '<b>$1</b>').replace(/^\s*[-*•]\s+/gm, '• ').replace(/\n/g, '<br>');
+const tex = t => String(t).replace(/\\\(|\\\)|\\\[|\\\]/g, '').replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '$1/$2').replace(/\\text\{([^}]*)\}/g, '$1').replace(/\\times/g, '×').replace(/\\cdot/g, '·').replace(/\\approx/g, '≈').replace(/\^2/g, '²').replace(/\^3/g, '³').replace(/\\,/g, ' ').replace(/\\rightarrow|\\to/g, '→');
+const md = t => esc(tex(t)).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/^#+\s*(.+)$/gm, '<b>$1</b>').replace(/^\s*[-*•]\s+/gm, '• ').replace(/\n/g, '<br>');
 async function aiReport(r) {
   openChat(); const id = addMsg('ai', '<i class="dots"><b></b><b></b><b></b></i> Analizando ' + esc(r.name) + '…');
   try { const t = await AIB.report(roomCtx(r), {}, w => setMsg(id, '⏳ IA gratuita ocupada, respondo en ' + w + ' s… (con una clave gratis de Gemini en ⚙️ es inmediato)')); setMsg(id, md(t)); chatHist.push({ role: 'assistant', content: t }); } catch (e) { setMsg(id, 'No pude conectar con la IA (' + esc(e.message) + '). Revisa tu conexión o configura una clave gratuita en ⚙️.'); }
