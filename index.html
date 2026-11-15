@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e2140">
+<title>CAM3D · Escaneo 3D de obra</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--navy:#0e2140;--blue:#1f7fd0;--gold:#e8b230;--red:#d62027;--paper:#f4f0e8;--ink:#202226;--mut:#6e6a64;--rule:#d6cfc3;--ok:#1f9d6a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px}
+header b{font:800 20px system-ui;letter-spacing:.04em}header b span{color:var(--gold)}
+header .sp{flex:1}header button{background:none;border:1px solid #ffffff55;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px}
+main{padding:14px 14px 90px;max-width:980px;margin:auto}
+.view{display:none}.view.on{display:block}
+h2{margin:6px 0 10px;font-size:20px;color:var(--navy)}
+.card{background:#fff;border-radius:12px;padding:14px;margin:10px 0;box-shadow:0 1px 3px #0001}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:10px;padding:12px 14px;font:600 15px system-ui;background:var(--navy);color:#fff;cursor:pointer}
+.btn.sec{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}.btn.gold{background:var(--gold);color:#111}.btn.red{background:var(--red)}.btn.sm{padding:8px 10px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:#fff;border-radius:12px;padding:16px 12px;text-align:center;border:1.5px solid var(--rule);font-weight:600;color:var(--navy)}.tile i{display:block;font-style:normal;font-size:28px;margin-bottom:4px}.tile small{display:block;font-weight:400;color:var(--mut);font-size:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input,select{font:inherit;padding:10px;border:1px solid var(--rule);border-radius:8px;background:#fff;width:100%}
+.mut{color:var(--mut);font-size:13px}.k{font:700 26px system-ui;color:var(--navy)}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:6px 4px;border-bottom:1px solid #eee;text-align:left}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:#fff;border-top:1px solid var(--rule);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border:0;padding:9px 2px 8px;font-size:11px;color:var(--mut)}nav button i{display:block;font-style:normal;font-size:20px}nav button.on{color:var(--navy);font-weight:700}
+#viewer{position:relative;height:62vh;background:#1b2330;border-radius:12px;overflow:hidden;touch-action:none}#viewer canvas{display:block;width:100%;height:100%}
+#vhud{position:absolute;left:8px;top:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}#vhud>*{pointer-events:auto}
+.chip{background:#0e2140cc;color:#fff;border-radius:20px;padding:6px 10px;font-size:12px;border:0}.chip.on{background:var(--gold);color:#111}
+#vinfo{position:absolute;left:8px;bottom:8px;background:#0e2140cc;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px}
+#plan{width:100%;background:#fff;border-radius:12px;border:1px solid var(--rule);min-height:200px}
+#plan svg{width:100%;height:auto;display:block}
+.list .it{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #eee}.list .it .t{flex:1}
+.pill{display:inline-block;background:#eef3fa;color:var(--blue);border-radius:20px;padding:2px 8px;font-size:12px;margin-right:4px}
+.thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.thumbs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px}
+#toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#111d;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;display:none;z-index:99;max-width:90vw}
+/* overlay AR */
+#ar{position:fixed;inset:0;display:none;z-index:50;color:#fff;font-family:system-ui}
+#ar .top{position:absolute;left:0;right:0;top:0;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;background:linear-gradient(#000a,#0000);display:flex;gap:8px;align-items:center}
+#ar .top .sp{flex:1}#ar .info{font-size:14px;text-shadow:0 1px 3px #000}
+#ar .bot{position:absolute;left:0;right:0;bottom:0;padding:12px 12px calc(18px + env(safe-area-inset-bottom));background:linear-gradient(#0000,#000b);display:flex;flex-direction:column;gap:10px;align-items:center}
+#ar .modes{display:flex;gap:6px}#ar .modes button{background:#0008;color:#fff;border:1px solid #fff6;border-radius:20px;padding:8px 12px;font-size:13px}#ar .modes button.on{background:var(--gold);color:#111;border-color:var(--gold)}
+#ar .acts{display:flex;gap:10px;align-items:center}
+#ar .shot{width:72px;height:72px;border-radius:50%;border:5px solid #fff;background:#fff3}
+#ar .abtn{background:#000a;color:#fff;border:1px solid #fff6;border-radius:12px;padding:10px 12px;font-size:13px}
+#ar .cross{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px #0006}
+.dlg{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;z-index:90;padding:20px}.dlg.on{display:flex}.dlg .box{background:#fff;border-radius:14px;padding:18px;max-width:420px;width:100%}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<header><b>CAM<span>3D</span></b><div class="sp"></div><span id="pname" class="mut" style="color:#c8d0de;font-size:13px"></span><button id="btnProj">Proyectos</button></header>
+<main>
+ <!-- INICIO -->
+ <section class="view on" id="v-home">
+  <h2>Capturar</h2>
+  <div class="grid">
+   <div class="tile" data-ar="plan"><i>📐</i>Plano de planta<small>Toca las esquinas del piso con la cámara</small></div>
+   <div class="tile" data-ar="measure"><i>📏</i>Medir<small>Distancias reales con realidad aumentada</small></div>
+   <div class="tile" data-ar="cloud"><i>🧊</i>Escaneo 3D<small>Nube de puntos con sensor de profundidad</small></div>
+   <div class="tile" id="tPhotos"><i>📷</i>Fotos para 3D<small>Set de fotos para fotogrametría</small></div>
+  </div>
+  <div class="card"><div class="row"><div style="flex:1"><div class="mut">Proyecto activo</div><div class="k" id="hname">—</div></div><button class="btn sec sm" id="btnRename">Renombrar</button></div>
+   <div class="grid3" style="margin-top:10px;text-align:center"><div><div class="k" id="sArea">0</div><div class="mut">m² de planta</div></div><div><div class="k" id="sMeas">0</div><div class="mut">medidas</div></div><div><div class="k" id="sPts">0</div><div class="mut">puntos 3D</div></div></div></div>
+  <div class="card"><b>Importar escaneo</b><div class="mut">Abre modelos o nubes hechos con otras apps (Scaniverse, Polycam, dron, escáner): PLY, OBJ, GLB/GLTF, LAS, XYZ, PTS, TXT, CSV.</div>
+   <div class="row" style="margin-top:8px"><label class="btn sec sm">Elegir archivo<input type="file" id="fImport" accept=".ply,.obj,.glb,.gltf,.las,.xyz,.pts,.txt,.csv" hidden></label></div></div>
+  <div class="card mut" id="arStatus">Comprobando compatibilidad de realidad aumentada…</div>
+ </section>
+ <!-- VISOR 3D -->
+ <section class="view" id="v-3d">
+  <h2>Modelo 3D</h2>
+  <div id="viewer"><div id="vhud"><button class="chip" id="cMeasure">📏 Medir</button><button class="chip on" id="cRoom">Muros</button><button class="chip on" id="cCloud">Nube</button><button class="chip on" id="cModel">Modelo</button><button class="chip" id="cTop">Planta</button><button class="chip" id="cFit">Encuadrar</button></div><div id="vinfo">Arrastra para girar · pellizca para acercar</div></div>
+  <div class="card"><b>Medidas</b><div id="mList" class="list mut">Aún no hay medidas.</div></div>
+ </section>
+ <!-- PLANO -->
+ <section class="view" id="v-plan">
+  <h2>Plano de planta</h2>
+  <div id="plan"></div>
+  <div class="card"><b>Espacios</b><div id="rList" class="list mut">Captura un plano con la cámara o dibuja uno manual.</div>
+   <div class="row" style="margin-top:8px"><button class="btn sec sm" id="btnManual">+ Espacio manual (medidas)</button></div></div>
+ </section>
+ <!-- EXPORTAR -->
+ <section class="view" id="v-exp">
+  <h2>Exportar</h2>
+  <div class="card"><b>Plano 2D</b><div class="mut">Para AutoCAD, Corel, Revit o impresión.</div>
+   <div class="grid3" style="margin-top:8px"><button class="btn sm" data-x="dxf">DXF</button><button class="btn sm" data-x="pdf">PDF</button><button class="btn sm" data-x="svg">SVG</button><button class="btn sm" data-x="png">PNG</button><button class="btn sm" data-x="csv">CSV</button></div></div>
+  <div class="card"><b>Nube de puntos</b><div class="mut">Para ReCap, CloudCompare, Revit, AutoCAD.</div>
+   <div class="grid3" style="margin-top:8px"><button class="btn sm" data-x="las">LAS</button><button class="btn sm" data-x="ply">PLY</button><button class="btn sm" data-x="pts">PTS</button><button class="btn sm" data-x="xyz">XYZ</button><button class="btn sm" data-x="pdxf">DXF puntos</button></div></div>
+  <div class="card"><b>Modelo 3D</b><div class="mut">Muros extruidos + modelo importado.</div>
+   <div class="grid3" style="margin-top:8px"><button class="btn sm" data-x="obj">OBJ</button><button class="btn sm" data-x="glb">GLB</button></div></div>
+  <div class="card"><b>Fotos para fotogrametría</b><div class="mut" id="phCount">0 fotos</div><div class="thumbs" id="thumbs" style="margin-top:8px"></div>
+   <div class="row" style="margin-top:8px"><label class="btn sec sm">+ Tomar / agregar fotos<input type="file" id="fPhotos" accept="image/*" capture="environment" multiple hidden></label><button class="btn sm" data-x="photos">Descargar fotos</button></div>
+   <div class="mut" style="margin-top:6px">Toma 40–150 fotos alrededor del objeto con 60–70 % de traslape y procésalas en Meshroom o RealityScan (gratis) para obtener la malla; luego impórtala aquí.</div></div>
+  <div class="card"><b>Proyecto completo</b><div class="row" style="margin-top:8px"><button class="btn gold sm" data-x="cam3d">Respaldo .cam3d</button><label class="btn sec sm">Abrir respaldo<input type="file" id="fBackup" accept=".cam3d,.json" hidden></label></div></div>
+ </section>
+</main>
+<nav><button data-v="home" class="on"><i>⌂</i>Inicio</button><button data-v="3d"><i>🧊</i>3D</button><button data-v="plan"><i>📐</i>Plano</button><button data-v="exp"><i>⇪</i>Exportar</button></nav>
+
+<!-- overlay de realidad aumentada -->
+<div id="ar">
+ <div class="top"><button class="abtn" id="arClose">✕ Terminar</button><div class="sp"></div><div class="info" id="arInfo">Mueve el teléfono para detectar superficies</div></div>
+ <div class="cross"></div>
+ <div class="bot">
+  <div class="modes"><button data-m="plan">Plano</button><button data-m="measure">Medir</button><button data-m="cloud">Escaneo 3D</button></div>
+  <div class="acts"><button class="abtn" id="arUndo">↶ Deshacer</button><button class="shot" id="arShot" aria-label="Capturar"></button><button class="abtn" id="arDone">✓ Cerrar</button></div>
+ </div>
+</div>
+<div class="dlg" id="dlg"><div class="box"><div id="dlgBody"></div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn sec sm" id="dlgNo">Cancelar</button><button class="btn sm" id="dlgOk">Aceptar</button></div></div></div>
+<div id="toast"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
