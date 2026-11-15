@@ -1,18 +1,37 @@
 {
-  "name": "CAM3D · Escaneo 3D de obra",
-  "short_name": "CAM3D",
-  "description": "Escaneo 3D, planos de planta, medidas con realidad aumentada y exportación DXF, PDF, LAS, PLY y OBJ para obras.",
-  "lang": "es",
-  "start_url": "./index.html",
-  "scope": "./",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#0e2140",
-  "theme_color": "#0e2140",
-  "categories": ["productivity", "utilities"],
-  "icons": [
-    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
-  ]
+ "name": "CAM3D · Escaneo 3D de obra",
+ "short_name": "CAM3D",
+ "description": "CAM3D de Tectónica Studio (Arq. Félix Victoria): escaneo 3D, planos de planta y medidas con realidad aumentada para obras. © 2026 Tectónica Studio.",
+ "lang": "es",
+ "start_url": "./index.html",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#060b16",
+ "theme_color": "#060b16",
+ "categories": [
+  "productivity",
+  "utilities"
+ ],
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ],
+ "id": "./"
 }

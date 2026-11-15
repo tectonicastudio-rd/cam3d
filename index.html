@@ -3,73 +3,221 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0e2140">
-<title>CAM3D · Escaneo 3D de obra</title>
+<meta name="theme-color" content="#060b16">
+<meta name="author" content="Tectónica Studio · Arq. Félix Victoria">
+<meta name="copyright" content="© 2026 Tectónica Studio">
+<title>CAM3D · Escaneo 3D de obra · Tectónica Studio</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preload" as="image" href="logo.webp">
 <style>
-:root{--navy:#0e2140;--blue:#1f7fd0;--gold:#e8b230;--red:#d62027;--paper:#f4f0e8;--ink:#202226;--mut:#6e6a64;--rule:#d6cfc3;--ok:#1f9d6a}
+:root{--bg:#060b16;--bg2:#0a1324;--glass:rgba(18,30,56,.62);--line:rgba(124,243,255,.16);--cy:#22d3ee;--cy2:#7cf3ff;--vi:#a855f7;--bl:#3b82f6;--or:#ff7a1a;--tx:#e8f1ff;--mut:#8ea3c2;--ok:#34d399;--red:#f43f5e;--gold:#22d3ee;--navy:#0a1324;--rule:rgba(124,243,255,.16);--ink:#e8f1ff;--blue:#7cf3ff;--grad:linear-gradient(135deg,#22d3ee 0%,#3b82f6 50%,#a855f7 100%)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px}
-header b{font:800 20px system-ui;letter-spacing:.04em}header b span{color:var(--gold)}
-header .sp{flex:1}header button{background:none;border:1px solid #ffffff55;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px}
-main{padding:14px 14px 90px;max-width:980px;margin:auto}
-.view{display:none}.view.on{display:block}
-h2{margin:6px 0 10px;font-size:20px;color:var(--navy)}
-.card{background:#fff;border-radius:12px;padding:14px;margin:10px 0;box-shadow:0 1px 3px #0001}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:10px;padding:12px 14px;font:600 15px system-ui;background:var(--navy);color:#fff;cursor:pointer}
-.btn.sec{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}.btn.gold{background:var(--gold);color:#111}.btn.red{background:var(--red)}.btn.sm{padding:8px 10px;font-size:13px}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.tile{background:#fff;border-radius:12px;padding:16px 12px;text-align:center;border:1.5px solid var(--rule);font-weight:600;color:var(--navy)}.tile i{display:block;font-style:normal;font-size:28px;margin-bottom:4px}.tile small{display:block;font-weight:400;color:var(--mut);font-size:12px}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--tx);font:15px/1.5 "Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:-2;background:radial-gradient(60% 40% at 85% 0%,rgba(168,85,247,.22),transparent 70%),radial-gradient(55% 40% at 0% 30%,rgba(34,211,238,.18),transparent 70%),radial-gradient(70% 50% at 50% 110%,rgba(59,130,246,.2),transparent 70%),var(--bg)}
+body::after{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(rgba(124,243,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(124,243,255,.05) 1px,transparent 1px);background-size:32px 32px;mask:linear-gradient(#000,transparent 75%);-webkit-mask:linear-gradient(#000,transparent 75%);pointer-events:none}
+header{position:sticky;top:0;z-index:20;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px;background:rgba(6,11,22,.72);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);border-bottom:1px solid var(--line)}
+header .lg{display:flex;align-items:center;gap:8px}header .lg img{width:34px;height:34px;filter:drop-shadow(0 0 8px rgba(34,211,238,.55))}
+header b{font:900 20px/1 "Poppins",system-ui;letter-spacing:.06em;background:linear-gradient(180deg,#fff,#b9c6d8);-webkit-background-clip:text;background-clip:text;color:transparent}header b span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+header .sp{flex:1}
+header button{position:relative;overflow:hidden;background:rgba(124,243,255,.08);border:1px solid var(--line);color:var(--tx);border-radius:999px;padding:7px 14px;font:600 13px system-ui;transition:transform .2s,background .2s,box-shadow .2s}
+header button:active{transform:scale(.94)}header button:hover{box-shadow:0 0 18px rgba(34,211,238,.35)}
+#pname{max-width:34vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+main{padding:14px 14px 110px;max-width:980px;margin:auto}
+.view{display:none}.view.on{display:block;animation:vin .5s cubic-bezier(.2,.9,.3,1)}
+.view.on>*{animation:up .6s cubic-bezier(.2,.9,.3,1) both}.view.on>*:nth-child(2){animation-delay:.05s}.view.on>*:nth-child(3){animation-delay:.1s}.view.on>*:nth-child(4){animation-delay:.15s}.view.on>*:nth-child(5){animation-delay:.2s}.view.on>*:nth-child(6){animation-delay:.25s}.view.on>*:nth-child(7){animation-delay:.3s}
+@keyframes vin{from{opacity:0}to{opacity:1}}@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+h2{margin:18px 2px 10px;font:700 13px/1 system-ui;letter-spacing:.22em;text-transform:uppercase;color:var(--cy2);display:flex;align-items:center;gap:10px}h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+.hero{position:relative;display:flex;align-items:center;gap:10px;padding:18px 18px;margin-top:4px;border-radius:22px;background:linear-gradient(135deg,rgba(34,211,238,.14),rgba(168,85,247,.14));border:1px solid var(--line);overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-40%;background:conic-gradient(from 0deg,transparent 0 70%,rgba(124,243,255,.25) 80%,transparent 90%);animation:spin 7s linear infinite}
+.hero>*{position:relative}.hero .hl{flex:1}
+.eyebrow{font:700 11px system-ui;letter-spacing:.28em;text-transform:uppercase;color:var(--cy2)}
+.hero h1{margin:6px 0 0;font:800 25px/1.12 "Poppins",system-ui}.hero h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hemb{width:96px;height:96px;filter:drop-shadow(0 0 16px rgba(34,211,238,.5));animation:float 4s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-6px) rotate(-2deg)}}@keyframes spin{to{transform:rotate(360deg)}}
+.card{position:relative;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.05)}
+.card b{font-weight:700;color:#fff}
+.btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:12px;padding:12px 16px;font:700 14px system-ui;letter-spacing:.02em;color:#fff;cursor:pointer;background:var(--grad);background-size:200% 200%;box-shadow:0 6px 20px rgba(59,130,246,.35),inset 0 1px 0 rgba(255,255,255,.25);transition:transform .18s cubic-bezier(.3,1.6,.5,1),box-shadow .25s,background-position .5s}
+.btn:hover{background-position:100% 0;box-shadow:0 8px 28px rgba(168,85,247,.45)}.btn:active{transform:scale(.93)}
+.btn.sec{background:rgba(124,243,255,.07);color:var(--cy2);border:1px solid rgba(124,243,255,.35);box-shadow:none}.btn.sec:hover{background:rgba(124,243,255,.14);box-shadow:0 0 18px rgba(34,211,238,.3)}
+.btn.gold{background:linear-gradient(135deg,#ff7a1a,#ff3d7f);box-shadow:0 6px 20px rgba(255,122,26,.35)}.btn.red{background:linear-gradient(135deg,#f43f5e,#be123c)}
+.btn.sm{padding:10px 12px;font-size:13px}
+.btn::after,.tile::after{content:"";position:absolute;top:0;left:-120%;width:60%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-20deg);transition:left .7s}
+.btn:hover::after,.tile:hover::after{left:140%}
+.rip{position:absolute;border-radius:50%;transform:scale(0);background:rgba(255,255,255,.45);animation:rip .6s ease-out forwards;pointer-events:none}@keyframes rip{to{transform:scale(4);opacity:0}}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{position:relative;overflow:hidden;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:20px;padding:18px 14px 16px;text-align:left;border:1px solid var(--line);font:700 15px system-ui;color:#fff;cursor:pointer;transition:transform .25s cubic-bezier(.3,1.5,.5,1),border-color .3s,box-shadow .3s;transform-style:preserve-3d;min-height:150px}
+.tile::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:var(--grad);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .3s}
+.tile:hover::before,.tile:active::before{opacity:1}.tile:active{transform:scale(.95)}.tile:hover{box-shadow:0 14px 34px rgba(34,211,238,.18)}
+.tile i{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;margin-bottom:12px;background:linear-gradient(135deg,rgba(34,211,238,.22),rgba(168,85,247,.22));border:1px solid rgba(124,243,255,.3);color:var(--cy2);box-shadow:0 0 22px rgba(34,211,238,.25);transition:transform .4s cubic-bezier(.3,1.6,.5,1)}
+.tile:hover i{transform:translateY(-3px) rotate(-6deg) scale(1.06)}.tile .ic{width:28px;height:28px}
+.tile small{display:block;margin-top:4px;font:400 12px/1.4 system-ui;color:var(--mut)}
+.tile[data-ar="cloud"] i{color:#d8b4fe;border-color:rgba(168,85,247,.45);box-shadow:0 0 22px rgba(168,85,247,.3)}.tile#tPhotos i{color:#ffb27a;border-color:rgba(255,122,26,.45);box-shadow:0 0 22px rgba(255,122,26,.25)}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-input,select{font:inherit;padding:10px;border:1px solid var(--rule);border-radius:8px;background:#fff;width:100%}
-.mut{color:var(--mut);font-size:13px}.k{font:700 26px system-ui;color:var(--navy)}
-table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:6px 4px;border-bottom:1px solid #eee;text-align:left}
-nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:#fff;border-top:1px solid var(--rule);display:flex;padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;background:none;border:0;padding:9px 2px 8px;font-size:11px;color:var(--mut)}nav button i{display:block;font-style:normal;font-size:20px}nav button.on{color:var(--navy);font-weight:700}
-#viewer{position:relative;height:62vh;background:#1b2330;border-radius:12px;overflow:hidden;touch-action:none}#viewer canvas{display:block;width:100%;height:100%}
-#vhud{position:absolute;left:8px;top:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}#vhud>*{pointer-events:auto}
-.chip{background:#0e2140cc;color:#fff;border-radius:20px;padding:6px 10px;font-size:12px;border:0}.chip.on{background:var(--gold);color:#111}
-#vinfo{position:absolute;left:8px;bottom:8px;background:#0e2140cc;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px}
-#plan{width:100%;background:#fff;border-radius:12px;border:1px solid var(--rule);min-height:200px}
+input,select{font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(6,11,22,.6);color:var(--tx);width:100%;transition:border-color .2s,box-shadow .2s}input:focus,select:focus{outline:0;border-color:var(--cy);box-shadow:0 0 0 3px rgba(34,211,238,.2)}
+.mut{color:var(--mut);font-size:13px}
+.k{font:800 28px/1.1 "Poppins",system-ui;background:linear-gradient(180deg,#fff,#9fdcff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.grid3 .k{font-size:26px}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:8px 4px;border-bottom:1px solid var(--line);text-align:left}
+nav{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:20;display:flex;padding:6px;border-radius:22px;background:rgba(10,19,36,.78);backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);border:1px solid var(--line);box-shadow:0 12px 40px rgba(0,0,0,.55);max-width:560px;margin:auto}
+nav .ind{position:absolute;top:6px;bottom:6px;left:6px;width:calc((100% - 12px)/4);border-radius:16px;background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(168,85,247,.25));border:1px solid rgba(124,243,255,.35);box-shadow:0 0 22px rgba(34,211,238,.3);transition:transform .45s cubic-bezier(.3,1.4,.5,1)}
+nav button{position:relative;flex:1;background:none;border:0;padding:8px 2px 6px;font:600 11px system-ui;color:var(--mut);transition:color .3s}
+nav button i{display:block;height:24px;margin-bottom:2px;transition:transform .35s cubic-bezier(.3,1.6,.5,1)}nav button .ic{width:22px;height:22px}
+nav button.on{color:#fff}nav button.on i{transform:translateY(-2px) scale(1.12);color:var(--cy2);filter:drop-shadow(0 0 6px rgba(34,211,238,.7))}
+#viewer{position:relative;height:62vh;background:radial-gradient(circle at 50% 40%,#13213d,#060b16);border-radius:20px;overflow:hidden;touch-action:none;border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.4)}#viewer canvas{display:block;width:100%;height:100%}
+#vhud{position:absolute;left:10px;top:10px;right:10px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}#vhud>*{pointer-events:auto}
+.chip{position:relative;overflow:hidden;background:rgba(10,19,36,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--tx);border-radius:999px;padding:7px 12px;font:600 12px system-ui;border:1px solid var(--line);transition:all .25s cubic-bezier(.3,1.5,.5,1)}.chip:active{transform:scale(.9)}
+.chip.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 0 16px rgba(34,211,238,.45)}
+#vinfo{position:absolute;left:10px;bottom:10px;background:rgba(10,19,36,.75);backdrop-filter:blur(10px);color:#fff;border-radius:12px;padding:7px 12px;font-size:13px;border:1px solid var(--line)}
+#plan{width:100%;background:#f7fafc;border-radius:18px;border:1px solid var(--line);min-height:200px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 #plan svg{width:100%;height:auto;display:block}
-.list .it{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #eee}.list .it .t{flex:1}
-.pill{display:inline-block;background:#eef3fa;color:var(--blue);border-radius:20px;padding:2px 8px;font-size:12px;margin-right:4px}
-.thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.thumbs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px}
-#toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#111d;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;display:none;z-index:99;max-width:90vw}
-/* overlay AR */
+.list .it{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);color:var(--tx)}.list .it .t{flex:1}
+.pill{display:inline-block;background:rgba(34,211,238,.12);color:var(--cy2);border:1px solid rgba(124,243,255,.25);border-radius:999px;padding:2px 9px;font-size:12px;margin-right:4px}
+.thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.thumbs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+#toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:rgba(10,19,36,.92);backdrop-filter:blur(12px);color:#fff;padding:12px 16px;border-radius:14px;font:600 14px system-ui;display:none;z-index:99;max-width:90vw;border:1px solid rgba(124,243,255,.35);box-shadow:0 0 24px rgba(34,211,238,.3);animation:tin .4s cubic-bezier(.3,1.5,.5,1)}
+@keyframes tin{from{opacity:0;transform:translate(-50%,16px) scale(.9)}to{opacity:1;transform:translate(-50%,0)}}
 #ar{position:fixed;inset:0;display:none;z-index:50;color:#fff;font-family:system-ui}
-#ar .top{position:absolute;left:0;right:0;top:0;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;background:linear-gradient(#000a,#0000);display:flex;gap:8px;align-items:center}
-#ar .top .sp{flex:1}#ar .info{font-size:14px;text-shadow:0 1px 3px #000}
-#ar .bot{position:absolute;left:0;right:0;bottom:0;padding:12px 12px calc(18px + env(safe-area-inset-bottom));background:linear-gradient(#0000,#000b);display:flex;flex-direction:column;gap:10px;align-items:center}
-#ar .modes{display:flex;gap:6px}#ar .modes button{background:#0008;color:#fff;border:1px solid #fff6;border-radius:20px;padding:8px 12px;font-size:13px}#ar .modes button.on{background:var(--gold);color:#111;border-color:var(--gold)}
-#ar .acts{display:flex;gap:10px;align-items:center}
-#ar .shot{width:72px;height:72px;border-radius:50%;border:5px solid #fff;background:#fff3}
-#ar .abtn{background:#000a;color:#fff;border:1px solid #fff6;border-radius:12px;padding:10px 12px;font-size:13px}
-#ar .cross{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px #0006}
-.dlg{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;z-index:90;padding:20px}.dlg.on{display:flex}.dlg .box{background:#fff;border-radius:14px;padding:18px;max-width:420px;width:100%}
+#ar .top{position:absolute;left:0;right:0;top:0;padding:calc(10px + env(safe-area-inset-top)) 12px 12px;background:linear-gradient(rgba(6,11,22,.85),transparent);display:flex;gap:8px;align-items:center}
+#ar .top .sp{flex:1}#ar .info{font:600 14px system-ui;text-shadow:0 1px 4px #000;padding:7px 12px;border-radius:999px;background:rgba(10,19,36,.6);border:1px solid var(--line)}
+#ar .bot{position:absolute;left:0;right:0;bottom:0;padding:14px 12px calc(20px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(6,11,22,.9));display:flex;flex-direction:column;gap:14px;align-items:center}
+#ar .modes{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(10,19,36,.7);border:1px solid var(--line)}#ar .modes button{background:none;color:#cfe;border:0;border-radius:999px;padding:9px 14px;font:600 13px system-ui;transition:all .3s}#ar .modes button.on{background:var(--grad);color:#fff;box-shadow:0 0 16px rgba(34,211,238,.5)}
+#ar .acts{display:flex;gap:18px;align-items:center}
+#ar .shot{position:relative;width:78px;height:78px;border-radius:50%;border:4px solid #fff;background:radial-gradient(circle,rgba(34,211,238,.5),rgba(168,85,247,.35));box-shadow:0 0 0 6px rgba(124,243,255,.18),0 0 30px rgba(34,211,238,.6);transition:transform .15s}#ar .shot:active{transform:scale(.88)}
+#ar .shot::before{content:"";position:absolute;inset:-12px;border-radius:50%;border:2px solid rgba(124,243,255,.5);animation:pulse 1.8s ease-out infinite}@keyframes pulse{from{transform:scale(.85);opacity:1}to{transform:scale(1.35);opacity:0}}
+#ar .abtn{background:rgba(10,19,36,.72);color:#fff;border:1px solid var(--line);border-radius:14px;padding:11px 14px;font:600 13px system-ui;backdrop-filter:blur(8px)}
+#ar .cross{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border:2px solid var(--cy2);border-radius:50%;box-shadow:0 0 12px var(--cy),inset 0 0 8px var(--cy)}#ar .cross::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px;border-radius:50%;background:#fff}
+.dlg{position:fixed;inset:0;background:rgba(2,6,14,.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:90;padding:20px}.dlg.on{display:flex}
+.dlg .box{background:linear-gradient(160deg,#101d38,#0a1324);border:1px solid rgba(124,243,255,.25);border-radius:22px;padding:20px;max-width:420px;width:100%;color:var(--tx);box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px rgba(34,211,238,.15);animation:pop .4s cubic-bezier(.3,1.5,.5,1)}@keyframes pop{from{opacity:0;transform:scale(.88) translateY(20px)}to{opacity:1;transform:none}}
+.copy{margin:30px 0 6px;padding-top:18px;border-top:1px solid var(--line);text-align:center;font-size:12px;color:var(--mut);line-height:1.6;display:flex;flex-direction:column;align-items:center;gap:1px}
+.copy img{width:54px;height:54px;margin-bottom:6px;opacity:.95;filter:drop-shadow(0 0 10px rgba(34,211,238,.4))}.copy b{color:#fff;letter-spacing:.32em;font-size:12px;margin-bottom:2px}
+/* INTRO */
+#intro{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 50% 42%,#14244a 0,#070d1b 60%,#03060d 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .7s ease,visibility .7s,transform .7s;overflow:hidden}
+#intro.out{opacity:0;visibility:hidden;transform:scale(1.08)}
+#intro canvas{position:absolute;inset:0;width:100%;height:100%}
+#intro .wrap{position:relative;width:min(78vw,380px);aspect-ratio:1;animation:lgin 1.4s cubic-bezier(.2,1,.3,1) .2s both}
+#intro .wrap img{width:100%;height:100%;filter:drop-shadow(0 0 28px rgba(34,211,238,.45)) drop-shadow(0 0 60px rgba(168,85,247,.3))}
+#intro .shine{position:absolute;inset:0;-webkit-mask:url(logo.webp) center/contain no-repeat;mask:url(logo.webp) center/contain no-repeat;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.95) 50%,transparent 65%);background-size:300% 100%;background-position:150% 0;animation:shine 1.3s ease-in-out 1.5s forwards;mix-blend-mode:screen}
+#intro .scan{position:absolute;left:-8%;right:-8%;height:3px;top:0;background:linear-gradient(90deg,transparent,#7cf3ff,#fff,#7cf3ff,transparent);box-shadow:0 0 18px #22d3ee,0 0 40px #22d3ee;opacity:0;animation:scan 1.6s ease-in-out .5s both}
+#intro .ring{position:absolute;left:50%;top:44%;width:60%;aspect-ratio:1;border-radius:50%;border:2px solid rgba(124,243,255,.6);transform:translate(-50%,-50%) scale(.2);opacity:0;animation:ring 1.6s ease-out 1.2s both}#intro .ring.b{animation-delay:1.45s;border-color:rgba(168,85,247,.55)}
+#intro .tg{margin-top:4px;font:600 12px/1.3 system-ui;letter-spacing:.42em;text-transform:uppercase;color:#7cf3ff;opacity:0;animation:fin .8s ease 2.2s forwards;position:relative;text-align:center}
+#intro .bar{position:relative;width:min(56vw,220px);height:3px;border-radius:3px;background:rgba(124,243,255,.15);margin-top:18px;overflow:hidden;opacity:0;animation:fin .4s ease 2.3s forwards}#intro .bar i{position:absolute;inset:0;background:var(--grad);transform-origin:left;transform:scaleX(0);animation:load 1.6s cubic-bezier(.6,0,.2,1) 2.4s forwards}
+#intro .by{position:absolute;left:16px;right:16px;bottom:calc(28px + env(safe-area-inset-bottom));text-align:center;opacity:0;animation:fin .8s ease 2.6s forwards}
+#intro .by b{display:block;font:800 13px/1.2 system-ui;letter-spacing:.42em;color:#fff}#intro .by small{display:block;margin-top:4px;font:400 11px system-ui;letter-spacing:.14em;color:#8ea3c2}
+#intro .skip{position:absolute;top:calc(14px + env(safe-area-inset-top));right:16px;font:12px system-ui;color:#8ea3c2;opacity:.7;z-index:2}
+@keyframes lgin{0%{opacity:0;transform:scale(.6) translateY(30px);filter:blur(14px)}60%{opacity:1;filter:blur(0)}100%{opacity:1;transform:none}}
+@keyframes shine{to{background-position:-150% 0}}
+@keyframes scan{0%{top:0;opacity:0}10%{opacity:1}55%{top:100%}90%{opacity:1}100%{top:46%;opacity:0}}
+@keyframes ring{0%{opacity:0;transform:translate(-50%,-50%) scale(.2)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.9)}}
+@keyframes fin{to{opacity:1}}@keyframes load{to{transform:scaleX(1)}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+header{display:grid!important;grid-template-columns:44px 1fr 44px 44px;align-items:center;gap:6px!important;padding:calc(8px + env(safe-area-inset-top)) 12px 8px!important}
+.hb{position:relative;width:42px;height:42px;display:grid;place-items:center;border-radius:14px!important;padding:0!important;background:transparent!important;border:0!important;color:#fff!important}.hb .ic{width:24px;height:24px}.hb:active{transform:scale(.88)}
+.bell .dot{position:absolute;top:8px;right:9px;width:9px;height:9px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2px #060b16,0 0 10px #ff3b5c;animation:blink 2s infinite}.bell.read .dot{display:none}@keyframes blink{50%{transform:scale(.7)}}
+.bell:hover .ic{animation:ring2 .8s}@keyframes ring2{20%{transform:rotate(14deg)}40%{transform:rotate(-12deg)}60%{transform:rotate(8deg)}80%{transform:rotate(-4deg)}}
+.av{border-radius:50%!important;background:linear-gradient(135deg,#1e3a8a,#4f46e5)!important;border:2px solid rgba(124,243,255,.6)!important;box-shadow:0 0 14px rgba(59,130,246,.55)}.av .ic{width:20px;height:20px}#avTxt{font:800 15px system-ui}
+.brand{display:flex;align-items:center;justify-content:center;gap:4px}.brand img{width:52px;height:52px;filter:drop-shadow(0 0 10px rgba(34,211,238,.6))}
+.brand b{font:900 italic 30px/1 "Poppins",system-ui!important;letter-spacing:.01em!important;background:linear-gradient(180deg,#fff 0%,#c9d3e0 45%,#7d8aa0 55%,#eef3f8 100%)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important;filter:drop-shadow(0 2px 0 rgba(0,0,0,.6)) drop-shadow(0 0 10px rgba(34,211,238,.25))}
+.brand b span{background:linear-gradient(180deg,#7cf3ff,#3b82f6 55%,#a855f7)!important;-webkit-background-clip:text!important;background-clip:text!important}
+.tagl{grid-column:1/-1;text-align:center;font:700 11px system-ui;letter-spacing:.36em;color:#dbe7ff;opacity:.9;padding-bottom:2px}
+.sect{display:flex;flex-direction:column;border-left:4px solid var(--cy);padding:2px 0 2px 12px;margin:16px 2px 14px;box-shadow:-6px 0 14px -8px var(--cy)}.sect h3{margin:0;font:800 28px/1.1 "Poppins",system-ui;color:#fff}.sect p{margin:2px 0 0;color:#c4d2ea;font-size:14px}
+.tiles .tile{text-align:center;min-height:0;padding:18px 12px 16px;border:1.5px solid rgba(255,255,255,.28);background-clip:padding-box}
+.tiles .tile b{display:block;font:800 18px/1.15 "Poppins",system-ui;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.35)}.tiles .tile small{color:rgba(255,255,255,.88);text-align:center}
+.tiles .tile::before{display:none}
+.t-bl{background:linear-gradient(150deg,#22c3f5 0%,#0b6fd6 55%,#073b8f 100%)!important;box-shadow:0 0 0 1px rgba(124,243,255,.4),0 10px 30px rgba(34,195,245,.35),inset 0 1px 0 rgba(255,255,255,.4)}
+.t-or{background:linear-gradient(150deg,#ffb347 0%,#f07b16 55%,#a8420a 100%)!important;box-shadow:0 0 0 1px rgba(255,190,110,.5),0 10px 30px rgba(255,122,26,.35),inset 0 1px 0 rgba(255,255,255,.4)}
+.t-vi{background:linear-gradient(150deg,#8b5cf6 0%,#5b21b6 55%,#2e1065 100%)!important;box-shadow:0 0 0 1px rgba(196,160,255,.45),0 10px 30px rgba(139,92,246,.4),inset 0 1px 0 rgba(255,255,255,.35)}
+.t-mg{background:linear-gradient(150deg,#ec4899 0%,#a21caf 55%,#5b0f74 100%)!important;box-shadow:0 0 0 1px rgba(255,150,220,.45),0 10px 30px rgba(236,72,153,.4),inset 0 1px 0 rgba(255,255,255,.35)}
+.tiles .tile:hover{filter:brightness(1.08) saturate(1.1)}
+.vf{position:relative;display:grid;place-items:center;width:124px;height:86px;margin:0 auto 8px;color:#fff}
+.vf::before{content:"";position:absolute;inset:0;--c:rgba(255,255,255,.85);background:linear-gradient(var(--c),var(--c)) 0 0/14px 2.5px,linear-gradient(var(--c),var(--c)) 0 0/2.5px 14px,linear-gradient(var(--c),var(--c)) 100% 0/14px 2.5px,linear-gradient(var(--c),var(--c)) 100% 0/2.5px 14px,linear-gradient(var(--c),var(--c)) 0 100%/14px 2.5px,linear-gradient(var(--c),var(--c)) 0 100%/2.5px 14px,linear-gradient(var(--c),var(--c)) 100% 100%/14px 2.5px,linear-gradient(var(--c),var(--c)) 100% 100%/2.5px 14px;background-repeat:no-repeat;transition:inset .35s cubic-bezier(.3,1.6,.5,1)}
+.tile:hover .vf::before,.tile:active .vf::before{inset:-5px -8px}
+.bi{width:66px;height:66px;filter:drop-shadow(0 0 8px rgba(255,255,255,.55));transition:transform .45s cubic-bezier(.3,1.6,.5,1)}.tile:hover .bi{transform:scale(1.1) rotate(-3deg)}
+.vf::after{content:"";position:absolute;left:6px;right:6px;height:2px;top:50%;background:linear-gradient(90deg,transparent,#fff,transparent);opacity:0;box-shadow:0 0 10px #fff}.tile:hover .vf::after,.tile:active .vf::after{animation:tscan 1s ease-in-out}@keyframes tscan{0%{top:10%;opacity:0}20%{opacity:1}100%{top:90%;opacity:0}}
+.card.pj,.card.imp,.card.ars{background:linear-gradient(160deg,rgba(17,35,72,.85),rgba(9,18,38,.85));border:1px solid rgba(80,170,255,.35);box-shadow:0 0 0 1px rgba(59,130,246,.15),0 12px 30px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06)}
+.pj .top{flex-wrap:nowrap}.ico{display:grid;place-items:center;color:var(--cy2);flex:none}.ico .ic{width:34px;height:34px;filter:drop-shadow(0 0 6px rgba(34,211,238,.6))}.ico.big .ic{width:46px;height:46px;color:#a78bfa;filter:drop-shadow(0 0 8px rgba(168,85,247,.6))}
+.pn{font:800 22px/1.2 "Poppins",system-ui;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pillbtn{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:6px;flex:none;padding:8px 14px;border-radius:12px;border:1.5px solid rgba(124,200,255,.55);background:rgba(10,25,55,.6);color:#fff;font:600 14px system-ui;text-decoration:none;transition:transform .2s cubic-bezier(.3,1.6,.5,1),box-shadow .25s}.pillbtn .ic{width:18px;height:18px}.pillbtn:hover{box-shadow:0 0 16px rgba(124,200,255,.45)}.pillbtn:active{transform:scale(.92)}
+.stats{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;align-items:end;margin-top:12px}.bld{width:100%;filter:drop-shadow(0 0 6px rgba(63,182,255,.6))}
+.st{display:flex;flex-direction:column;align-items:center;text-align:center;border-left:1px solid rgba(124,200,255,.25);padding:0 4px}.st:nth-child(2){border-left:0}.st .ic{width:30px;height:30px;color:var(--cy2);margin-bottom:4px;filter:drop-shadow(0 0 6px rgba(34,211,238,.6))}.st .k{font-size:22px!important}.st .k small{font-size:14px}.st span{font-size:13px;color:#c4d2ea}
+.card.imp{display:flex;align-items:center;gap:12px}.card.imp .mut{font-size:12px}
+.gbtn{flex:none;background:linear-gradient(135deg,#2563eb,#7c3aed 60%,#db2777)!important;border:1.5px solid rgba(124,243,255,.6);border-radius:14px!important;padding:12px 14px!important;box-shadow:0 0 18px rgba(124,58,237,.5)!important}.gbtn .ic{width:20px;height:20px}
+.card.ars{display:flex;align-items:center;gap:12px;padding:12px 14px}.ars .wi .ic{width:30px;height:30px;color:#ffc53d;filter:drop-shadow(0 0 6px rgba(255,197,61,.6))}.ars.ok .wi .ic{color:var(--ok)}.ars.ok .play{display:none}.ars #arStatus{color:#dbe7ff;font-size:12.5px}
+.play{padding:8px 12px}
+nav button.on{color:#fff}nav .ind{background:linear-gradient(135deg,#0ea5e9,#2563eb 50%,#7c3aed)!important;border:1.5px solid rgba(124,243,255,.7)!important;box-shadow:0 0 20px rgba(59,130,246,.6),inset 0 1px 0 rgba(255,255,255,.35)!important}nav button.on i{color:#fff!important}
+nav button{font-size:13px!important}nav button .ic{width:26px!important;height:26px!important}
+.scrim{position:fixed;inset:0;background:rgba(2,6,14,.6);backdrop-filter:blur(4px);opacity:0;visibility:hidden;transition:.35s;z-index:60}.scrim.on{opacity:1;visibility:visible}
+.drawer{position:fixed;top:0;bottom:0;left:0;width:min(82vw,320px);z-index:61;background:linear-gradient(170deg,#0f1e3d,#070d1b);border-right:1px solid var(--line);box-shadow:20px 0 60px rgba(0,0,0,.6);transform:translateX(-105%);transition:transform .45s cubic-bezier(.2,1,.3,1);display:flex;flex-direction:column;padding:calc(12px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));overflow:auto}
+.drawer.on{transform:none}.dh{display:flex;align-items:flex-start;justify-content:space-between}.dh img{width:150px;filter:drop-shadow(0 0 16px rgba(34,211,238,.4))}
+.dproj{margin:6px 4px 12px;padding:10px 12px;border-radius:14px;background:rgba(34,211,238,.08);border:1px solid var(--line);display:flex;flex-direction:column}.dproj b{font:700 16px system-ui;color:#fff}
+.di{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;width:100%;padding:13px 12px;margin:2px 0;border:0;border-radius:14px;background:none;color:#e8f1ff;font:600 15px system-ui;text-align:left;opacity:0;transform:translateX(-16px);transition:background .2s}
+.drawer.on .di{animation:din .45s cubic-bezier(.2,1,.3,1) forwards}.drawer.on .di:nth-of-type(2){animation-delay:.05s}.drawer.on .di:nth-of-type(3){animation-delay:.1s}.drawer.on .di:nth-of-type(4){animation-delay:.15s}.drawer.on .di:nth-of-type(5){animation-delay:.2s}.drawer.on .di:nth-of-type(6){animation-delay:.25s}.drawer.on .di:nth-of-type(7){animation-delay:.3s}
+@keyframes din{to{opacity:1;transform:none}}.di:hover,.di:active{background:linear-gradient(90deg,rgba(34,211,238,.18),transparent)}.di .ic{width:22px;height:22px;color:var(--cy2)}
+.dfoot{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);display:flex;flex-direction:column;font-size:12px;color:var(--mut)}.dfoot b{color:#fff;letter-spacing:.3em;font-size:12px}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:62;max-height:82vh;overflow:auto;background:linear-gradient(170deg,#11214a,#080f20);border-top:1px solid rgba(124,243,255,.3);border-radius:26px 26px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .45s cubic-bezier(.2,1,.3,1);box-shadow:0 -20px 60px rgba(0,0,0,.6)}.sheet.on{transform:none}
+.grab{width:44px;height:5px;border-radius:5px;background:rgba(255,255,255,.25);margin:0 auto 14px}
+.sheet h4{margin:0 0 10px;font:800 20px "Poppins",system-ui}.sheet .nt{display:flex;gap:12px;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line);margin:8px 0}.sheet .nt .ic{width:24px;height:24px;color:var(--cy2);flex:none}.sheet .nt b{display:block}
+.uhead{display:flex;align-items:center;gap:14px;margin-bottom:14px}.uav{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font:800 24px system-ui;background:linear-gradient(135deg,#1e3a8a,#7c3aed);border:2px solid rgba(124,243,255,.6);box-shadow:0 0 20px rgba(124,58,237,.5)}
+.sheet label{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
+
+#intro .wrap{width:min(74vw,360px)!important;margin-top:-6vh}
+#intro .ld{position:relative;width:min(70vw,280px);margin-top:20px;opacity:0;animation:fin .5s ease 1.1s forwards;transition:opacity .4s}
+#intro .ld .bar{width:100%;height:4px;border-radius:4px;background:rgba(124,243,255,.15);overflow:hidden;position:relative;opacity:1;animation:none;margin:0;box-shadow:0 0 12px rgba(34,211,238,.25)}
+#intro .ld .bar i{position:absolute;inset:0;background:linear-gradient(90deg,#22d3ee,#3b82f6,#a855f7,#ec4899);transform-origin:left;transform:scaleX(0);animation:none;box-shadow:0 0 14px #22d3ee}
+#intro .pc{display:flex;justify-content:space-between;margin-top:8px;font:500 11px system-ui;letter-spacing:.12em;color:#8ea3c2;text-transform:uppercase}#intro .pc b{color:#7cf3ff;font:700 12px system-ui}
+#intro .ienter{position:relative;margin-top:22px;padding:14px 28px;border-radius:999px;border:1.5px solid rgba(124,243,255,.7);background:linear-gradient(135deg,rgba(14,165,233,.35),rgba(124,58,237,.45));color:#fff;font:800 13px system-ui;letter-spacing:.32em;box-shadow:0 0 24px rgba(34,211,238,.45),inset 0 1px 0 rgba(255,255,255,.3);opacity:0;transform:translateY(12px) scale(.9);pointer-events:none;transition:all .5s cubic-bezier(.3,1.5,.5,1)}
+#intro.ready .ienter{opacity:1;transform:none;pointer-events:auto;animation:glowp 1.6s ease-in-out infinite .5s}#intro.ready .ld{animation:none;opacity:0}
+@keyframes glowp{50%{box-shadow:0 0 40px rgba(34,211,238,.8),0 0 70px rgba(168,85,247,.45),inset 0 1px 0 rgba(255,255,255,.3)}}
+#intro.out{opacity:0;visibility:hidden;transform:scale(1.25)!important;filter:blur(6px);transition:opacity .8s ease .1s,transform .9s cubic-bezier(.6,0,.4,1),filter .8s,visibility .9s}
+#intro .ld{margin-bottom:-60px}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 </head>
 <body>
-<header><b>CAM<span>3D</span></b><div class="sp"></div><span id="pname" class="mut" style="color:#c8d0de;font-size:13px"></span><button id="btnProj">Proyectos</button></header>
+<div id="intro" role="presentation"><canvas id="ifx"></canvas><div class="wrap"><img src="logo.webp" alt="CAM3D"><div class="shine"></div><div class="scan"></div><div class="ring"></div><div class="ring b"></div></div><div class="tg">Escanea · Mide · Modela · Exporta</div><div class="ld"><div class="bar"><i id="ibar"></i></div><div class="pc"><span id="imsg">Iniciando motor 3D</span><b id="ipc">0%</b></div></div><button id="ienter" class="ienter">TOCA PARA ENTRAR</button><div class="by"><b>TECTÓNICA STUDIO</b><small>Arq. Félix Victoria</small><small>© 2026 · Todos los derechos reservados</small></div></div>
+<script>
+window.SFX=(function(){var A=null,on=true;try{on=localStorage.cam3dSnd!=='0'}catch(e){}
+function ctx(){if(!A){var C=window.AudioContext||window.webkitAudioContext;if(!C)return null;A=new C()}if(A.state==='suspended')A.resume();return A}
+function noise(a,d){var b=a.createBuffer(1,a.sampleRate*d,a.sampleRate),x=b.getChannelData(0);for(var i=0;i<x.length;i++)x[i]=Math.random()*2-1;var s=a.createBufferSource();s.buffer=b;return s}
+function env(a,g,t,at,v,d){g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(v,t+at);g.gain.exponentialRampToValueAtTime(0.0001,t+d)}
+var S={whoosh:function(a,t){var n=noise(a,1.4),f=a.createBiquadFilter(),g=a.createGain();f.type='bandpass';f.Q.value=1.2;f.frequency.setValueAtTime(180,t);f.frequency.exponentialRampToValueAtTime(4200,t+1.1);n.connect(f).connect(g).connect(a.destination);env(a,g,t,.6,.35,1.35);n.start(t);n.stop(t+1.4)},
+impact:function(a,t){var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.setValueAtTime(120,t);o.frequency.exponentialRampToValueAtTime(38,t+.9);o.connect(g).connect(a.destination);env(a,g,t,.01,.9,1.1);o.start(t);o.stop(t+1.2);var n=noise(a,.4),f=a.createBiquadFilter(),g2=a.createGain();f.type='lowpass';f.frequency.value=1800;n.connect(f).connect(g2).connect(a.destination);env(a,g2,t,.005,.4,.35);n.start(t);n.stop(t+.4)},
+shimmer:function(a,t){var dl=a.createDelay(),fb=a.createGain(),out=a.createGain();dl.delayTime.value=.18;fb.gain.value=.35;out.gain.value=.5;dl.connect(fb).connect(dl);dl.connect(out).connect(a.destination);[659.3,987.8,1318.5,1975.5].forEach(function(fq,i){var o=a.createOscillator(),g=a.createGain(),tt=t+i*.09;o.type='triangle';o.frequency.value=fq;o.connect(g);g.connect(a.destination);g.connect(dl);env(a,g,tt,.01,.16,.9);o.start(tt);o.stop(tt+1)})},
+scan:function(a,t){var o=a.createOscillator(),g=a.createGain();o.type='sawtooth';o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(1600,t+.8);var f=a.createBiquadFilter();f.type='lowpass';f.frequency.value=2200;o.connect(f).connect(g).connect(a.destination);env(a,g,t,.05,.07,.85);o.start(t);o.stop(t+.9)},
+tick:function(a,t){var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.setValueAtTime(1800,t);o.frequency.exponentialRampToValueAtTime(900,t+.05);o.connect(g).connect(a.destination);env(a,g,t,.002,.08,.07);o.start(t);o.stop(t+.08)},
+ok:function(a,t){[880,1318.5].forEach(function(fq,i){var o=a.createOscillator(),g=a.createGain(),tt=t+i*.08;o.type='sine';o.frequency.value=fq;o.connect(g).connect(a.destination);env(a,g,tt,.005,.12,.25);o.start(tt);o.stop(tt+.3)})}};
+function play(n,dl){if(!on)return;var a=ctx();if(!a||a.state!=='running')return;S[n](a,a.currentTime+(dl||0))}
+return{play:play,ctx:ctx,get on(){return on},set on(v){on=v;try{localStorage.cam3dSnd=v?'1':'0'}catch(e){}}}})();
+(function(){var i=document.getElementById('intro'),c=document.getElementById('ifx'),x=c.getContext('2d'),W,H,P=[],run=1,t0=performance.now(),bar=document.getElementById('ibar'),pc=document.getElementById('ipc'),msg=document.getElementById('imsg'),en=document.getElementById('ienter');
+function rs(){W=c.width=innerWidth*devicePixelRatio;H=c.height=innerHeight*devicePixelRatio}rs();addEventListener('resize',rs);
+for(var k=0;k<110;k++)P.push({a:Math.random()*6.283,r:.15+Math.random()*.6,s:.0015+Math.random()*.004,z:Math.random(),c:Math.random()<.5?'124,243,255':'168,85,247'});
+function f(n){if(!run)return;var t=(n-t0)/1000;x.clearRect(0,0,W,H);var cx=W/2,cy=H*.40,m=Math.min(W,H);for(var j=0;j<P.length;j++){var p=P[j];p.a+=p.s*(1+(i.dataset.go?6:0));var rr=p.r*m*(.55+.45*Math.min(1,t/1.5)),px=cx+Math.cos(p.a)*rr,py=cy+Math.sin(p.a)*rr*.42,al=(.25+.75*p.z)*Math.min(1,t/1);x.fillStyle='rgba('+p.c+','+al+')';x.beginPath();x.arc(px,py,(1+2*p.z)*devicePixelRatio,0,6.283);x.fill()}requestAnimationFrame(f)}requestAnimationFrame(f);
+SFX.ctx();setTimeout(function(){SFX.play('whoosh')},150);setTimeout(function(){SFX.play('scan')},550);setTimeout(function(){SFX.play('impact')},1350);setTimeout(function(){SFX.play('shimmer')},1550);
+var M=['Iniciando motor 3D','Cargando realidad aumentada','Calibrando sensores','Preparando proyectos','Listo'],p0=performance.now(),D=3000;
+function ld(n){var k=Math.min(1,(n-p0-1200)/D);if(k<0)k=0;var e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;bar.style.transform='scaleX('+e+')';pc.textContent=Math.round(e*100)+'%';msg.textContent=M[Math.min(M.length-1,Math.floor(e*(M.length-1)+.0001))];if(k<1)requestAnimationFrame(ld);else{i.classList.add('ready');SFX.play('ok')}}requestAnimationFrame(ld);
+function go(){if(i.dataset.go)return;i.dataset.go=1;SFX.ctx();SFX.play('whoosh');SFX.play('impact',.25);i.classList.add('out');setTimeout(function(){run=0;i.remove()},900)}
+en.addEventListener('click',function(e){e.stopPropagation();go()});i.addEventListener('click',function(){if(i.classList.contains('ready'))go();else SFX.ctx()});
+})();
+document.addEventListener('pointerdown',function(e){if(e.target.closest('.btn,.tile,.chip,nav button,.hb,.di,.pillbtn,#ar button'))SFX.play('tick')},{passive:true});
+</script>
+<header><button class="hb" id="btnMenu" aria-label="Menú"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="brand"><img src="emblem-256.png" alt=""><b>CAM<span>3D</span></b></div><button class="hb bell" id="btnBell" aria-label="Notificaciones"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><i class="dot"></i></button><button class="hb av" id="btnUser" aria-label="Usuario"><span id="avTxt"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span></button><div class="tagl">ESCANEA · MIDE · MODELA · EXPORTA</div></header>
 <main>
  <!-- INICIO -->
  <section class="view on" id="v-home">
-  <h2>Capturar</h2>
-  <div class="grid">
-   <div class="tile" data-ar="plan"><i>📐</i>Plano de planta<small>Toca las esquinas del piso con la cámara</small></div>
-   <div class="tile" data-ar="measure"><i>📏</i>Medir<small>Distancias reales con realidad aumentada</small></div>
-   <div class="tile" data-ar="cloud"><i>🧊</i>Escaneo 3D<small>Nube de puntos con sensor de profundidad</small></div>
-   <div class="tile" id="tPhotos"><i>📷</i>Fotos para 3D<small>Set de fotos para fotogrametría</small></div>
+  <div class="sect"><h3>Capturar</h3><p>Convierte espacios reales en modelos 3D precisos</p></div>
+  <div class="grid tiles">
+   <div class="tile t-bl" data-ar="plan"><span class="vf"><svg class="bi" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="30" height="30" rx="1"/><path d="M9 21h12v18M27 9v14h12M21 27h6"/></svg></span><b>Plano de planta</b><small>Toca las esquinas del piso con la cámara</small></div>
+   <div class="tile t-or" data-ar="measure"><span class="vf"><svg class="bi" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="14" width="36" height="14" rx="3"/><path d="M12 14v6M18 14v4M24 14v6M30 14v4M36 14v6"/><circle cx="11" cy="23" r="1.5"/><path d="M10 36h28M10 36l4-3M10 36l4 3M38 36l-4-3M38 36l-4 3" stroke="#ffd166"/></svg></span><b>Medir</b><small>Distancias reales con realidad aumentada</small></div>
+   <div class="tile t-vi" data-ar="cloud"><span class="vf"><svg class="bi" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6 40 15v18l-16 9-16-9V15z"/><path d="M8 15l16 9 16-9M24 24v18"/><path d="M16 10.5 32 19.5M32 10.5 16 19.5" opacity=".35"/></svg></span><b>Escaneo 3D</b><small>Nube de puntos con sensor de profundidad</small></div>
+   <div class="tile t-mg" id="tPhotos"><span class="vf"><svg class="bi" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M29 10h-10l-3 5h-6a3 3 0 0 0-3 3v17a3 3 0 0 0 3 3h28a3 3 0 0 0 3-3V18a3 3 0 0 0-3-3h-6z"/><circle cx="24" cy="26" r="7"/></svg></span><b>Fotos para 3D</b><small>Set de fotos para fotogrametría</small></div>
   </div>
-  <div class="card"><div class="row"><div style="flex:1"><div class="mut">Proyecto activo</div><div class="k" id="hname">—</div></div><button class="btn sec sm" id="btnRename">Renombrar</button></div>
-   <div class="grid3" style="margin-top:10px;text-align:center"><div><div class="k" id="sArea">0</div><div class="mut">m² de planta</div></div><div><div class="k" id="sMeas">0</div><div class="mut">medidas</div></div><div><div class="k" id="sPts">0</div><div class="mut">puntos 3D</div></div></div></div>
-  <div class="card"><b>Importar escaneo</b><div class="mut">Abre modelos o nubes hechos con otras apps (Scaniverse, Polycam, dron, escáner): PLY, OBJ, GLB/GLTF, LAS, XYZ, PTS, TXT, CSV.</div>
-   <div class="row" style="margin-top:8px"><label class="btn sec sm">Elegir archivo<input type="file" id="fImport" accept=".ply,.obj,.glb,.gltf,.las,.xyz,.pts,.txt,.csv" hidden></label></div></div>
-  <div class="card mut" id="arStatus">Comprobando compatibilidad de realidad aumentada…</div>
+  <div class="card pj"><div class="row top"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 12 10 5 10-5M2 17l10 5 10-5"/></svg></span><div style="flex:1;min-width:0"><div class="mut">Proyecto activo</div><div class="pn" id="hname">—</div></div><button class="pillbtn" id="btnRename"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>Renombrar</button></div>
+   <div class="stats"><svg class="bld" viewBox="0 0 120 70" fill="none" stroke="#3fb6ff" stroke-width="1" opacity=".85"><path d="M6 64h108M14 64V30l30-12 30 12v34M74 30l30-8v42M14 30l60 0M44 18v46M24 38h12v8H24zM52 38h12v8H52zM24 52h12v8H24zM52 52h12v8H52zM82 34h14v8H82zM82 48h14v8H82z"/><path d="M6 64 30 50M114 64 90 50" opacity=".4"/></svg>
+   <div class="st"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1"/><circle cx="4" cy="4" r="1.6"/><circle cx="20" cy="4" r="1.6"/><circle cx="4" cy="20" r="1.6"/><circle cx="20" cy="20" r="1.6"/></svg><div class="k"><span id="sArea">0</span><small> m²</small></div><span>de planta</span></div><div class="st"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3 8.7 2.7a1 1 0 0 0-1.4 0L2.7 7.3a1 1 0 0 0 0 1.4l12.6 12.6a1 1 0 0 0 1.4 0l4.6-4.6a1 1 0 0 0 0-1.4z"/><path d="m7.5 10.5 2-2M10.5 13.5l2-2M13.5 16.5l2-2"/></svg><div class="k" id="sMeas">0</div><span>medidas</span></div><div class="st"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg><div class="k" id="sPts">0</div><span>puntos 3D</span></div></div></div>
+  <div class="card imp"><span class="ico big"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a5 5 0 0 1-.6-9.96A6 6 0 0 1 18 8a4.5 4.5 0 0 1 .5 9"/><path d="M12 12v9M8.5 15.5 12 12l3.5 3.5"/></svg></span><div style="flex:1;min-width:0"><b>Importar escaneo</b><div class="mut">Abre modelos o nubes hechos con otras apps (Scaniverse, Polycam, dron, escáner): PLY, OBJ, GLB/GLTF, LAS, XYZ, PTS, TXT, CSV.</div></div><label class="btn gbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Elegir archivo<input type="file" id="fImport" accept=".ply,.obj,.glb,.gltf,.las,.xyz,.pts,.txt,.csv" hidden></label></div>
+  <div class="card ars" id="arCard"><span class="ico wi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><div class="mut" id="arStatus" style="flex:1">Comprobando compatibilidad de realidad aumentada…</div><a class="pillbtn play" id="arFix" href="https://play.google.com/store/apps/details?id=com.google.ar.core" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" class="ic"><path d="M4 2.5 14 12 4 21.5c-.6-.3-1-.9-1-1.6V4.1c0-.7.4-1.3 1-1.6z" fill="#00d3ff"/><path d="M17.5 8.6 14 12l3.5 3.4 3.4-2c1-.6 1-2.2 0-2.8z" fill="#ffd400"/><path d="M4 2.5c.5-.3 1.2-.3 1.8 0l11.7 6.1L14 12z" fill="#00f076"/><path d="M14 12l3.5 3.4-11.7 6.1c-.6.3-1.3.3-1.8 0z" fill="#ff3a44"/></svg>Actualizar</a></div>
+  <div class="copy"><img src="emblem-256.png" alt=""><b>TECTÓNICA STUDIO</b><span>CAM3D v1.0 · Arq. Félix Victoria</span><span>© 2026 Tectónica Studio. Todos los derechos reservados.</span><span>Prohibida su reproducción o distribución sin autorización (Ley 65-00, República Dominicana).</span></div>
  </section>
  <!-- VISOR 3D -->
  <section class="view" id="v-3d">
@@ -99,7 +247,7 @@ nav button{flex:1;background:none;border:0;padding:9px 2px 8px;font-size:11px;co
   <div class="card"><b>Proyecto completo</b><div class="row" style="margin-top:8px"><button class="btn gold sm" data-x="cam3d">Respaldo .cam3d</button><label class="btn sec sm">Abrir respaldo<input type="file" id="fBackup" accept=".cam3d,.json" hidden></label></div></div>
  </section>
 </main>
-<nav><button data-v="home" class="on"><i>⌂</i>Inicio</button><button data-v="3d"><i>🧊</i>3D</button><button data-v="plan"><i>📐</i>Plano</button><button data-v="exp"><i>⇪</i>Exportar</button></nav>
+<nav><span class="ind"></span><button data-v="home" class="on"><i><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></i>Inicio</button><button data-v="3d"><i><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg></i>3D</button><button data-v="plan"><i><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M3 9h7v12M14 3v8h7"/></svg></i>Plano</button><button data-v="exp"><i><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg></i>Exportar</button></nav>
 
 <!-- overlay de realidad aumentada -->
 <div id="ar">
@@ -112,6 +260,50 @@ nav button{flex:1;background:none;border:0;padding:9px 2px 8px;font-size:11px;co
 </div>
 <div class="dlg" id="dlg"><div class="box"><div id="dlgBody"></div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn sec sm" id="dlgNo">Cancelar</button><button class="btn sm" id="dlgOk">Aceptar</button></div></div></div>
 <div id="toast"></div>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer"><div class="dh"><img src="logo.webp" alt="CAM3D"><button class="hb" id="dClose"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+<div class="dproj"><span class="mut">Proyecto</span><b id="pname">—</b></div>
+<button class="di" id="btnProj"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v13H3zM8 7V4h8v3"/></svg><span>Mis proyectos</span></button>
+<button class="di" data-go="home"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg><span>Nueva captura</span></button>
+<button class="di" data-go="3d"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg><span>Visor 3D</span></button>
+<button class="di" data-go="exp"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg><span>Exportar archivos</span></button>
+<button class="di" id="dShare"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg><span>Compartir CAM3D</span></button>
+<button class="di" id="dHelp"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg><span>Guía rápida</span></button>
+<button class="di" id="dAbout"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Acerca de</span></button>
+<div class="dfoot"><b>TECTÓNICA STUDIO</b><span>Arq. Félix Victoria · © 2026</span></div></aside>
+<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
+
+<script>
+(function(){
+document.addEventListener('pointerdown',function(e){var b=e.target.closest('.btn,.tile,.chip,nav button,header button,#ar .abtn,#ar .modes button');if(!b)return;var r=b.getBoundingClientRect(),s=Math.max(r.width,r.height),d=document.createElement('span');d.className='rip';d.style.width=d.style.height=s+'px';d.style.left=(e.clientX-r.left-s/2)+'px';d.style.top=(e.clientY-r.top-s/2)+'px';if(getComputedStyle(b).position==='static')b.style.position='relative';b.appendChild(d);setTimeout(function(){d.remove()},650);if(navigator.vibrate)navigator.vibrate(8)},{passive:true});
+var nav=document.querySelector('nav'),ind=nav.querySelector('.ind'),bs=[].slice.call(nav.querySelectorAll('button'));function mv(){var i=bs.findIndex(function(b){return b.classList.contains('on')});ind.style.transform='translateX('+(Math.max(0,i)*100)+'%)'}new MutationObserver(mv).observe(nav,{subtree:true,attributes:true,attributeFilter:['class']});mv();
+document.querySelectorAll('.tile').forEach(function(t){t.addEventListener('pointermove',function(e){var r=t.getBoundingClientRect(),px=(e.clientX-r.left)/r.width-.5,py=(e.clientY-r.top)/r.height-.5;t.style.transform='perspective(600px) rotateY('+(px*10)+'deg) rotateX('+(-py*10)+'deg)'});t.addEventListener('pointerleave',function(){t.style.transform=''})});
+function cu(el){var o=new MutationObserver(function(){var v=parseFloat(el.textContent.replace(/[^0-9.,-]/g,'').replace(',','.'));if(isNaN(v)||el._a)return;el._a=1;var txt=el.textContent,st=performance.now();function s(n){var k=Math.min(1,(n-st)/700),e=1-Math.pow(1-k,3);el.textContent=(v%1?(v*e).toFixed(1):Math.round(v*e)).toLocaleString('es');if(k<1)requestAnimationFrame(s);else{el.textContent=txt;setTimeout(function(){el._a=0},50)}}o.disconnect();requestAnimationFrame(s);setTimeout(function(){o.observe(el,{childList:true,characterData:true,subtree:true})},800)});o.observe(el,{childList:true,characterData:true,subtree:true})}
+['#sArea','#sMeas','#sPts'].forEach(function(s){var e=document.querySelector(s);if(e)cu(e)});
+})();
+</script>
+<script>
+(function(){
+var $=function(s){return document.querySelector(s)},dr=$('#drawer'),sc=$('#scrim'),sh=$('#sheet');
+function closeAll(){dr.classList.remove('on');sh.classList.remove('on');sc.classList.remove('on')}
+$('#btnMenu').onclick=function(){dr.classList.add('on');sc.classList.add('on')};$('#dClose').onclick=closeAll;sc.onclick=closeAll;
+document.querySelectorAll('[data-go]').forEach(function(b){b.onclick=function(){closeAll();var n=document.querySelector('nav [data-v="'+b.dataset.go+'"]');n&&n.click()}});
+$('#btnProj').addEventListener('click',closeAll);
+function sheet(html){$('#sheetBody').innerHTML=html;sh.classList.add('on');sc.classList.add('on')}
+var I=function(p){return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>'};
+$('#btnBell').onclick=function(){this.classList.add('read');try{localStorage.cam3dRead=1}catch(e){};sheet('<h4>Notificaciones</h4><div class="nt">'+I('<path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/>')+'<div><b>Bienvenido a CAM3D</b><span class="mut">Escanea, mide, modela y exporta tus obras desde el teléfono.</span></div></div><div class="nt">'+I('<path d="M3 3h18v18H3z"/><path d="M3 9h7v12M14 3v8h7"/>')+'<div><b>Consejo de captura</b><span class="mut">Recorre el espacio despacio y con buena luz para que el aro detecte el piso.</span></div></div><div class="nt">'+I('<path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>')+'<div><b>Exporta a AutoCAD</b><span class="mut">Desde Exportar genera DXF, PDF, LAS, PLY, OBJ y GLB.</span></div></div>')};
+try{if(localStorage.cam3dRead)$('#btnBell').classList.add('read')}catch(e){}
+function U(){try{return JSON.parse(localStorage.cam3dUser||'{}')}catch(e){return{}}}
+function ini(n){return (n||'').trim().split(/\s+/).map(function(w){return w[0]}).slice(0,2).join('').toUpperCase()}
+function paintAv(){var u=U();if(u.name)$('#avTxt').textContent=ini(u.name)}paintAv();
+$('#btnUser').onclick=function(){var u=U();sheet('<div class="uhead"><div class="uav">'+(ini(u.name)||'?')+'</div><div><h4 style="margin:0">'+(u.name||'Mi perfil')+'</h4><span class="mut">'+(u.company||'Configura tus datos para los planos')+'</span></div></div><label>Nombre</label><input id="uN" value="'+(u.name||'')+'" placeholder="Arq. Nombre Apellido"><label>Empresa</label><input id="uC" value="'+(u.company||'')+'" placeholder="Tectónica Studio"><label>Correo</label><input id="uE" type="email" value="'+(u.email||'')+'" placeholder="correo@empresa.com"><div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn sec sm" id="uX">Cerrar</button><button class="btn sm" id="uS">Guardar perfil</button></div>');$('#uX').onclick=closeAll;$('#uS').onclick=function(){try{localStorage.cam3dUser=JSON.stringify({name:$('#uN').value,company:$('#uC').value,email:$('#uE').value})}catch(e){}paintAv();closeAll()}};
+$('#dAbout').onclick=function(){dr.classList.remove('on');sheet('<div style="text-align:center"><img src="logo.webp" style="width:180px;filter:drop-shadow(0 0 20px rgba(34,211,238,.45))"><h4>CAM3D v1.0</h4><p class="mut">Escaneo 3D, planos de planta y medidas con realidad aumentada para obras.</p><p><b style="letter-spacing:.3em">TECTÓNICA STUDIO</b><br><span class="mut">Arq. Félix Victoria</span></p><p class="mut" style="font-size:12px">© 2026 Tectónica Studio. Todos los derechos reservados. Prohibida su reproducción o distribución sin autorización (Ley 65-00, República Dominicana).</p></div>')};
+$('#dHelp').onclick=function(){dr.classList.remove('on');sheet('<h4>Guía rápida</h4><div class="nt"><b>1</b><div><b>Plano de planta</b><span class="mut">Apunta al piso, espera el aro y toca cada esquina. Cierra en la primera esquina.</span></div></div><div class="nt"><b>2</b><div><b>Medir</b><span class="mut">Toca el punto inicial y el final; la distancia se guarda en el proyecto.</span></div></div><div class="nt"><b>3</b><div><b>Escaneo 3D</b><span class="mut">Con sensor de profundidad, toca el botón y recorre el objeto para capturar la nube.</span></div></div><div class="nt"><b>4</b><div><b>Exportar</b><span class="mut">Descarga DXF, PDF, LAS, PLY, OBJ o GLB para tus programas.</span></div></div>')};
+$('#dShare').onclick=function(){closeAll();var d={title:'CAM3D',text:'CAM3D · Escaneo 3D de obra por Tectónica Studio',url:location.href};if(navigator.share)navigator.share(d).catch(function(){});else if(navigator.clipboard)navigator.clipboard.writeText(location.href)};
+var st=$('#arStatus'),cd=$('#arCard');new MutationObserver(function(){var t=st.innerHTML;if(/^\s*(✅|⚠️)/.test(t)){var ok=t.indexOf('✅')>-1;st.innerHTML=t.replace(/^\s*(✅|⚠️)\s*/,'');cd.classList.toggle('ok',ok);cd.querySelector('.wi').innerHTML=ok?'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg>':cd.querySelector('.wi').innerHTML}}).observe(st,{childList:true,subtree:true,characterData:true});
+var sy=0;sh.addEventListener('touchstart',function(e){sy=e.touches[0].clientY},{passive:true});sh.addEventListener('touchend',function(e){if(e.changedTouches[0].clientY-sy>80&&sh.scrollTop<=0)closeAll()},{passive:true});
+})();
+</script>
 <script type="module" src="app.js"></script>
 </body>
 </html>
