@@ -216,3 +216,100 @@ export function unproject(u, v, depth, inv, m) {
   const dx = vx / vw, dy = vy / vw, dz = vz / vw; const k = depth / -dz; const px = dx * k, py = dy * k, pz = -depth;
   return [m[0] * px + m[4] * py + m[8] * pz + m[12], m[1] * px + m[5] * py + m[9] * pz + m[13], m[2] * px + m[6] * py + m[10] * pz + m[14]];
 }
+
+// ---------------- reconstrucción automática del espacio ----------------
+const pct = (arr, q) => { const a = Array.from(arr).sort((x, y) => x - y); return a.length ? a[Math.min(a.length - 1, Math.max(0, Math.floor(q * (a.length - 1))))] : 0; };
+export function autoRoom(pos, opt = {}) {
+  const n = pos.length / 3 | 0; if (n < 150) return null;
+  const step = Math.max(1, Math.floor(n / 60000));
+  const ys = []; for (let i = 0; i < n; i += step) ys.push(pos[i * 3 + 1]);
+  const floorY = pct(ys, 0.03), topY = pct(ys, 0.985);
+  let h = topY - floorY; const ceilingSeen = h > 2.0; if (!ceilingSeen) h = 2.6; h = Math.min(4.5, Math.max(2.2, h));
+  const W = [], A = [];
+  for (let i = 0; i < n; i += step) { const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2]; if (y < floorY - 0.15 || y > floorY + h + 0.2) continue; A.push(x, z); if (y > floorY + 0.12 && y < floorY + Math.min(2.2, h - 0.15)) W.push(x, z); }
+  const src = W.length > 400 ? W : A; if (A.length < 300) return null;
+  // orientación dominante (muros en ángulo recto)
+  let best = 0, bestS = -1; const cell = 0.05;
+  for (let deg = 0; deg < 90; deg += 1) {
+    const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), hx = new Map(), hz = new Map();
+    for (let i = 0; i < src.length; i += 2 * Math.max(1, Math.floor(src.length / 2 / 8000))) { const u = Math.round((src[i] * c + src[i + 1] * s) / cell), v = Math.round((-src[i] * s + src[i + 1] * c) / cell); hx.set(u, (hx.get(u) || 0) + 1); hz.set(v, (hz.get(v) || 0) + 1); }
+    let sc = 0; for (const v of hx.values()) sc += v * v; for (const v of hz.values()) sc += v * v; if (sc > bestS) { bestS = sc; best = a; }
+  }
+  const c = Math.cos(best), s = Math.sin(best), U = [], V = [];
+  for (let i = 0; i < A.length; i += 2) { U.push(A[i] * c + A[i + 1] * s); V.push(-A[i] * s + A[i + 1] * c); }
+  const u0 = pct(U, 0.005) - 0.3, u1 = pct(U, 0.995) + 0.3, v0 = pct(V, 0.005) - 0.3, v1 = pct(V, 0.995) + 0.3;
+  const gw = Math.min(600, Math.ceil((u1 - u0) / cell) + 1), gh = Math.min(600, Math.ceil((v1 - v0) / cell) + 1);
+  let G = new Uint8Array(gw * gh); const cnt = new Uint16Array(gw * gh);
+  for (let i = 0; i < U.length; i++) { const x = Math.floor((U[i] - u0) / cell), y = Math.floor((V[i] - v0) / cell); if (x >= 0 && y >= 0 && x < gw && y < gh) cnt[y * gw + x]++; }
+  for (let k = 0; k < G.length; k++) G[k] = cnt[k] > 0 ? 1 : 0;
+  const morph = (g, r, dil) => { const o = new Uint8Array(g.length); for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) { let v = dil ? 0 : 1; for (let dy = -r; dy <= r && (dil ? !v : v); dy++) for (let dx = -r; dx <= r; dx++) { const xx = x + dx, yy = y + dy; const val = xx >= 0 && yy >= 0 && xx < gw && yy < gh ? g[yy * gw + xx] : 0; if (dil && val) { v = 1; break; } if (!dil && !val) { v = 0; break; } } o[y * gw + x] = v; } return o; };
+  G = morph(G, 3, true);
+  // rellenar huecos interiores
+  const out = new Uint8Array(G.length), q = []; for (let x = 0; x < gw; x++) { q.push(x, (gh - 1) * gw + x); } for (let y = 0; y < gh; y++) { q.push(y * gw, y * gw + gw - 1); }
+  while (q.length) { const k = q.pop(); if (out[k] || G[k]) continue; out[k] = 1; const x = k % gw, y = k / gw | 0; if (x > 0) q.push(k - 1); if (x < gw - 1) q.push(k + 1); if (y > 0) q.push(k - gw); if (y < gh - 1) q.push(k + gw); }
+  for (let k = 0; k < G.length; k++) G[k] = out[k] ? 0 : 1;
+  G = morph(G, 3, false);
+  // componente principal
+  const lab = new Int32Array(G.length).fill(-1); let bestC = -1, bestN = 0;
+  for (let k0 = 0; k0 < G.length; k0++) { if (!G[k0] || lab[k0] >= 0) continue; let m = 0; const st = [k0]; lab[k0] = k0; while (st.length) { const k = st.pop(); m++; const x = k % gw, y = k / gw | 0; for (const nk of [x > 0 ? k - 1 : -1, x < gw - 1 ? k + 1 : -1, y > 0 ? k - gw : -1, y < gh - 1 ? k + gw : -1]) if (nk >= 0 && G[nk] && lab[nk] < 0) { lab[nk] = k0; st.push(nk); } } if (m > bestN) { bestN = m; bestC = k0; } }
+  if (bestN < 40) return null;
+  const inC = (x, y) => x >= 0 && y >= 0 && x < gw && y < gh && lab[y * gw + x] === bestC;
+  // contorno ortogonal (bordes con el interior a la izquierda)
+  const E = new Map(); const add = (ax, ay, bx, by) => { const k = ax + ',' + ay; (E.get(k) || E.set(k, []).get(k)).push([bx, by]); };
+  for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) { if (!inC(x, y)) continue; if (!inC(x, y - 1)) add(x, y, x + 1, y); if (!inC(x + 1, y)) add(x + 1, y, x + 1, y + 1); if (!inC(x, y + 1)) add(x + 1, y + 1, x, y + 1); if (!inC(x - 1, y)) add(x, y + 1, x, y); }
+  let loop = []; for (const [k0] of E) { const L = []; let k = k0, guard = 0; while (E.has(k) && E.get(k).length && guard++ < 200000) { const [ax, ay] = k.split(',').map(Number); L.push([ax, ay]); const nx = E.get(k).pop(); k = nx[0] + ',' + nx[1]; if (k === k0) break; } if (L.length > loop.length) loop = L; }
+  // vértices de esquina → aristas H/V
+  let P = loop.filter((p, i) => { const a = loop[(i - 1 + loop.length) % loop.length], b = loop[(i + 1) % loop.length]; return !((a[0] === p[0] && p[0] === b[0]) || (a[1] === p[1] && p[1] === b[1])); });
+  if (P.length < 4) return null;
+  let ed = P.map((p, i) => { const b = P[(i + 1) % P.length]; return p[1] === b[1] ? { t: 'H', c: p[1] } : { t: 'V', c: p[0] }; });
+  const verts = e => e.map((a, i) => { const b = e[(i + 1) % e.length]; return a.t === 'H' ? [b.c, a.c] : [a.c, b.c]; });
+  const lens = e => { const v = verts(e); return e.map((_, i) => { const a = v[(i - 1 + v.length) % v.length], b = v[i]; return Math.hypot(a[0] - b[0], a[1] - b[1]); }); };
+  const minLen = (opt.minWall || 0.22) / cell;
+  for (let it = 0; it < 500 && ed.length > 4; it++) {
+    const L = lens(ed); let k = -1, m = Infinity; L.forEach((l, i) => { if (l < m) { m = l; k = i; } }); if (m >= minLen) break;
+    const N = ed.length, ip = (k - 1 + N) % N, inx = (k + 1) % N, a = ed[ip], b = ed[inx], la = Math.max(1e-6, L[ip]), lb = Math.max(1e-6, L[inx]);
+    const merged = { t: a.t, c: (a.c * la + b.c * lb) / (la + lb) };
+    const keep = ed.filter((_, i) => i !== k && i !== inx); const pos2 = keep.indexOf(a); keep[pos2] = merged; ed = keep;
+    // fusionar aristas consecutivas del mismo tipo
+    for (let j = 0; j < ed.length && ed.length > 4; j++) { const nn = (j + 1) % ed.length; if (ed[j].t === ed[nn].t) { ed[j] = { t: ed[j].t, c: (ed[j].c + ed[nn].c) / 2 }; ed.splice(nn, 1); j--; } }
+  }
+  { const v = verts(ed), d = (opt.inset != null ? opt.inset : 0.045) / cell; ed = ed.map((e, i) => { const a = v[(i - 1 + v.length) % v.length], b = v[i]; if (e.t === 'H') return { t: 'H', c: e.c + (b[0] > a[0] ? d : -d) }; return { t: 'V', c: e.c + (b[1] > a[1] ? -d : d) }; }); }
+  const pts = verts(ed).map(([gx, gy]) => { const uu = gx * cell + u0, vv = gy * cell + v0; return { x: +(uu * c - vv * s).toFixed(3), z: +(uu * s + vv * c).toFixed(3) }; });
+  return { pts, y: floorY, h: +h.toFixed(2), ceilingSeen, angle: best };
+}
+
+// ---------------- exportación del modelo completo (SketchUp, 3ds Max, Revit, Maya, AutoCAD) ----------------
+// parts: [{ name, color:[r,g,b] 0..1, tris: Float32Array (x,y,z world, Y arriba, metros) }]
+const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+const lay = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]+/g, '_').toUpperCase().slice(0, 60) || 'CAM3D';
+export function modelDAE(parts, title = 'CAM3D') {
+  const now = new Date().toISOString(); let fx = '', mt = '', ge = '', no = '';
+  parts.forEach((p, i) => {
+    const id = 'p' + i, c = p.color.map(v => v.toFixed(4)).join(' '), n = p.tris.length / 3;
+    fx += `<effect id="${id}-fx"><profile_COMMON><technique sid="common"><lambert><diffuse><color>${c} 1</color></diffuse></lambert></technique></profile_COMMON></effect>`;
+    mt += `<material id="${id}-mat" name="${esc(p.name)}"><instance_effect url="#${id}-fx"/></material>`;
+    const f = Array.from(p.tris, v => +v.toFixed(5)).join(' '), idx = Array.from({ length: n }, (_, k) => k).join(' ');
+    ge += `<geometry id="${id}-geo" name="${esc(p.name)}"><mesh><source id="${id}-pos"><float_array id="${id}-pos-a" count="${p.tris.length}">${f}</float_array><technique_common><accessor source="#${id}-pos-a" count="${n}" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source><vertices id="${id}-vtx"><input semantic="POSITION" source="#${id}-pos"/></vertices><triangles material="m" count="${n / 3}"><input semantic="VERTEX" source="#${id}-vtx" offset="0"/><p>${idx}</p></triangles></mesh></geometry>`;
+    no += `<node id="${id}-node" name="${esc(p.name)}"><instance_geometry url="#${id}-geo"><bind_material><technique_common><instance_material symbol="m" target="#${id}-mat"/></technique_common></bind_material></instance_geometry></node>`;
+  });
+  return `<?xml version="1.0" encoding="utf-8"?>\n<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1"><asset><contributor><author>Tectónica Studio</author><authoring_tool>CAM3D</authoring_tool><copyright>© 2026 Tectónica Studio. Todos los derechos reservados.</copyright></contributor><created>${now}</created><modified>${now}</modified><unit name="meter" meter="1"/><up_axis>Y_UP</up_axis><title>${esc(title)}</title></asset><library_effects>${fx}</library_effects><library_materials>${mt}</library_materials><library_geometries>${ge}</library_geometries><library_visual_scenes><visual_scene id="scene" name="${esc(title)}">${no}</visual_scene></library_visual_scenes><scene><instance_visual_scene url="#scene"/></scene></COLLADA>\n`;
+}
+export function modelDXF3D(parts) {
+  const aci = c => { const [r, g, b] = c, mx = Math.max(r, g, b), mn = Math.min(r, g, b); if (mx - mn < 0.12) return mx > 0.75 ? 7 : mx > 0.45 ? 8 : 250; const h = (() => { const d = mx - mn; let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (h * 60 + 360) % 360; })(); return [1, 30, 2, 3, 4, 5, 6, 1][Math.round(h / 52) % 7] || 7; };
+  const o = ['0', 'SECTION', '2', 'HEADER', '9', '$ACADVER', '1', 'AC1015', '9', '$INSUNITS', '70', '6', '0', 'ENDSEC', '0', 'SECTION', '2', 'TABLES', '0', 'TABLE', '2', 'LAYER', '70', String(parts.length)];
+  for (const p of parts) o.push('0', 'LAYER', '2', lay(p.name), '70', '0', '62', String(aci(p.color)), '6', 'CONTINUOUS');
+  o.push('0', 'ENDTAB', '0', 'ENDSEC', '0', 'SECTION', '2', 'ENTITIES');
+  const f = v => (+v).toFixed(4);
+  for (const p of parts) { const L = lay(p.name), t = p.tris; for (let i = 0; i < t.length; i += 9) { const P = k => [t[i + k * 3], -t[i + k * 3 + 2], t[i + k * 3 + 1]]; const a = P(0), b = P(1), c = P(2); o.push('0', '3DFACE', '8', L, '10', f(a[0]), '20', f(a[1]), '30', f(a[2]), '11', f(b[0]), '21', f(b[1]), '31', f(b[2]), '12', f(c[0]), '22', f(c[1]), '32', f(c[2]), '13', f(c[0]), '23', f(c[1]), '33', f(c[2])); } }
+  o.push('0', 'ENDSEC', '0', 'EOF'); return o.join('\n') + '\n';
+}
+export function modelOBJ(parts, mtlName = 'modelo.mtl') {
+  const o = ['# CAM3D · © 2026 Tectónica Studio. Todos los derechos reservados.', '# Unidades: metros · Y arriba', 'mtllib ' + mtlName], m = ['# CAM3D materiales']; let v = 1;
+  parts.forEach((p, i) => { const nm = lay(p.name) + '_' + i; m.push('newmtl ' + nm, 'Kd ' + p.color.map(x => x.toFixed(4)).join(' '), 'Ka 0 0 0', 'd 1', ''); o.push('g ' + nm, 'usemtl ' + nm); const t = p.tris; for (let k = 0; k < t.length; k += 3) o.push(`v ${t[k].toFixed(5)} ${t[k + 1].toFixed(5)} ${t[k + 2].toFixed(5)}`); for (let k = 0; k < t.length / 3; k += 3) o.push(`f ${v + k} ${v + k + 1} ${v + k + 2}`); v += t.length / 3; });
+  return { obj: o.join('\n') + '\n', mtl: m.join('\n') + '\n' };
+}
+export function modelSTL(parts) {
+  let n = 0; for (const p of parts) n += p.tris.length / 9; const b = new DataView(new ArrayBuffer(84 + n * 50)); const hdr = 'CAM3D Tectonica Studio'; for (let i = 0; i < hdr.length; i++) b.setUint8(i, hdr.charCodeAt(i)); b.setUint32(80, n, true); let off = 84;
+  for (const p of parts) { const t = p.tris; for (let i = 0; i < t.length; i += 9) { const ax = t[i + 3] - t[i], ay = t[i + 4] - t[i + 1], az = t[i + 5] - t[i + 2], bx = t[i + 6] - t[i], by = t[i + 7] - t[i + 1], bz = t[i + 8] - t[i + 2]; let nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx; const l = Math.hypot(nx, ny, nz) || 1; [nx / l, -nz / l, ny / l].forEach((v, k) => b.setFloat32(off + k * 4, v, true)); off += 12; for (let k = 0; k < 3; k++) { b.setFloat32(off, t[i + k * 3], true); b.setFloat32(off + 4, -t[i + k * 3 + 2], true); b.setFloat32(off + 8, t[i + k * 3 + 1], true); off += 12; } b.setUint16(off, 0, true); off += 2; } }
+  return b.buffer;
+}

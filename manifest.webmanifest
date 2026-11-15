@@ -1,7 +1,7 @@
 {
  "name": "CAM3D · Escaneo 3D de obra",
  "short_name": "CAM3D",
- "description": "CAM3D de Tectónica Studio (Arq. Félix Victoria): escaneo 3D, planos de planta y medidas con realidad aumentada para obras. © 2026 Tectónica Studio.",
+ "description": "CAM3D de Tectónica Studio: escaneo 3D, planos de planta y medidas con realidad aumentada para obras. © 2026 Tectónica Studio.",
  "lang": "es",
  "start_url": "./index.html",
  "scope": "./",

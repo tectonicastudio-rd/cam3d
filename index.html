@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#060b16">
-<meta name="author" content="Tectónica Studio · Arq. Félix Victoria">
+<meta name="author" content="Tectónica Studio">
 <meta name="copyright" content="© 2026 Tectónica Studio">
 <title>CAM3D · Escaneo 3D de obra · Tectónica Studio</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -100,7 +100,7 @@ nav button.on{color:#fff}nav button.on i{transform:translateY(-2px) scale(1.12);
 #intro .shine{position:absolute;inset:0;-webkit-mask:url(logo.webp) center/contain no-repeat;mask:url(logo.webp) center/contain no-repeat;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.95) 50%,transparent 65%);background-size:300% 100%;background-position:150% 0;animation:shine 1.3s ease-in-out 1.5s forwards;mix-blend-mode:screen}
 #intro .scan{position:absolute;left:-8%;right:-8%;height:3px;top:0;background:linear-gradient(90deg,transparent,#7cf3ff,#fff,#7cf3ff,transparent);box-shadow:0 0 18px #22d3ee,0 0 40px #22d3ee;opacity:0;animation:scan 1.6s ease-in-out .5s both}
 #intro .ring{position:absolute;left:50%;top:44%;width:60%;aspect-ratio:1;border-radius:50%;border:2px solid rgba(124,243,255,.6);transform:translate(-50%,-50%) scale(.2);opacity:0;animation:ring 1.6s ease-out 1.2s both}#intro .ring.b{animation-delay:1.45s;border-color:rgba(168,85,247,.55)}
-#intro .tg{margin-top:4px;font:600 12px/1.3 system-ui;letter-spacing:.42em;text-transform:uppercase;color:#7cf3ff;opacity:0;animation:fin .8s ease 2.2s forwards;position:relative;text-align:center}
+#intro .tg{margin-top:4px;font:600 11px/1.3 system-ui;letter-spacing:.28em;text-transform:uppercase;color:#7cf3ff;opacity:0;animation:fin .8s ease 2.2s forwards;position:relative;text-align:center}
 #intro .bar{position:relative;width:min(56vw,220px);height:3px;border-radius:3px;background:rgba(124,243,255,.15);margin-top:18px;overflow:hidden;opacity:0;animation:fin .4s ease 2.3s forwards}#intro .bar i{position:absolute;inset:0;background:var(--grad);transform-origin:left;transform:scaleX(0);animation:load 1.6s cubic-bezier(.6,0,.2,1) 2.4s forwards}
 #intro .by{position:absolute;left:16px;right:16px;bottom:calc(28px + env(safe-area-inset-bottom));text-align:center;opacity:0;animation:fin .8s ease 2.6s forwards}
 #intro .by b{display:block;font:800 13px/1.2 system-ui;letter-spacing:.42em;color:#fff}#intro .by small{display:block;margin-top:4px;font:400 11px system-ui;letter-spacing:.14em;color:#8ea3c2}
@@ -171,11 +171,86 @@ nav button{font-size:13px!important}nav button .ic{width:26px!important;height:2
 @keyframes glowp{50%{box-shadow:0 0 40px rgba(34,211,238,.8),0 0 70px rgba(168,85,247,.45),inset 0 1px 0 rgba(255,255,255,.3)}}
 #intro.out{opacity:0;visibility:hidden;transform:scale(1.25)!important;filter:blur(6px);transition:opacity .8s ease .1s,transform .9s cubic-bezier(.6,0,.4,1),filter .8s,visibility .9s}
 #intro .ld{margin-bottom:-60px}
+
+/* ===== v2: fluidez ===== */
+.view.on{animation:vin .28s cubic-bezier(.2,.9,.3,1)}.view.on>*{animation:up .34s cubic-bezier(.2,.9,.3,1) both}.view.on>*:nth-child(n){animation-delay:0s}.view.on>*:nth-child(2){animation-delay:.03s}.view.on>*:nth-child(3){animation-delay:.06s}.view.on>*:nth-child(4){animation-delay:.09s}.view.on>*:nth-child(n+5){animation-delay:.12s}
+.card,.tile{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+/* hero automático / IA */
+.hero2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 4px}.hbtn>div{display:flex;flex-direction:column;gap:3px;position:relative;z-index:1}.hbtn svg,.hbtn .bdg{z-index:1}
+.hbtn{position:relative;overflow:hidden;border:0;border-radius:22px;padding:16px 14px;text-align:left;color:#fff;cursor:pointer;min-height:118px;display:flex;flex-direction:column;justify-content:space-between;transition:transform .2s cubic-bezier(.3,1.5,.5,1)}
+.hbtn:active{transform:scale(.95)}.hbtn b{font:900 17px system-ui;letter-spacing:.06em}.hbtn small{font:600 11px system-ui;opacity:.9;line-height:1.35}
+.hbtn svg{width:34px;height:34px}
+.h-ai{background:linear-gradient(135deg,#7c3aed,#db2777 55%,#f97316);box-shadow:0 10px 30px rgba(219,39,119,.4)}
+.h-auto{background:linear-gradient(135deg,#0891b2,#2563eb 60%,#7c3aed);box-shadow:0 10px 30px rgba(34,211,238,.35)}
+.hbtn::after{content:"";position:absolute;inset:-40%;background:conic-gradient(from 0deg,transparent 0 70%,rgba(255,255,255,.35) 80%,transparent 90%);animation:spin 3.2s linear infinite;opacity:.55;pointer-events:none}@keyframes spin{to{transform:rotate(1turn)}}
+.hbtn .bdg{position:absolute;right:10px;top:10px;font:800 9px system-ui;letter-spacing:.12em;padding:3px 7px;border-radius:999px;background:rgba(255,255,255,.22)}
+.subrow{display:flex;gap:8px;margin:8px 0 2px}.pillbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;padding:10px 12px;background:rgba(10,19,36,.7);border:1px solid var(--line);color:var(--tx);font:700 13px system-ui}.pillbtn svg{width:16px;height:16px}
+/* flujo */
+.flow{display:flex;align-items:center;gap:4px;padding:12px 10px}.flow button{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:0;color:var(--mut);font:700 11px system-ui;position:relative}
+.flow i{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--line);font-style:normal;font-size:13px;transition:.3s}.flow .ok i{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 0 14px rgba(34,211,238,.55)}.flow .ok{color:var(--tx)}
+.flow s{flex:.5;height:2px;background:var(--line);border-radius:2px}.flow s.ok{background:var(--grad)}
+/* AR v2 */
+#autoHud,#aiArrow,#rulH,#rulV,#rulAlt{display:none}
+body.ar-auto #ar .modes,body.ar-auto #arUndo{display:none}body.ar-auto #autoHud{display:flex}body.ar-ai #aiArrow{display:grid}
+#ar #rulH,#ar #rulV,#ar #rulAlt{display:block}
+#autoHud{position:absolute;right:12px;top:calc(64px + env(safe-area-inset-top));flex-direction:column;align-items:center;gap:8px;padding:10px;border-radius:18px;background:rgba(6,11,22,.62);border:1px solid var(--line);backdrop-filter:blur(8px);width:132px}
+#autoHud .rg{position:relative;width:104px;height:104px}#autoHud svg{width:104px;height:104px;transform:rotate(-90deg)}#autoHud circle{fill:none;stroke-width:8}#autoHud .bg{stroke:rgba(255,255,255,.12)}#autoRing{stroke:url(#gr);stroke-linecap:round;stroke-dasharray:289;stroke-dashoffset:289;transition:stroke-dashoffset .35s}
+#autoPct{position:absolute;inset:0;display:grid;place-items:center;font:900 26px system-ui}#autoHud small{font:700 10px system-ui;letter-spacing:.12em;color:var(--cy2)}#autoHint{font:700 12px system-ui;text-align:center;line-height:1.3}#autoRadar{width:112px;height:112px}
+#aiArrow{position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px;place-items:center;pointer-events:none}
+#aiArrow svg{width:120px;height:120px;filter:drop-shadow(0 0 18px rgba(219,39,119,.9));transition:transform .35s cubic-bezier(.3,1.5,.5,1),opacity .3s;animation:nud 1s ease-in-out infinite}
+#aiArrow[data-d=left] svg{transform:rotate(180deg)}#aiArrow[data-d=up] svg{transform:rotate(-90deg)}#aiArrow[data-d=down] svg{transform:rotate(90deg)}#aiArrow[data-d=fwd] svg{transform:rotate(-90deg) scale(.7)}#aiArrow[data-d=ok] svg,#aiArrow[data-d=slow] svg{opacity:0}
+@keyframes nud{50%{translate:6px 0}}
+#aiTag{position:absolute;left:12px;top:calc(64px + env(safe-area-inset-top));display:none;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:linear-gradient(135deg,#7c3aed,#db2777);font:800 12px system-ui;letter-spacing:.08em;box-shadow:0 0 22px rgba(219,39,119,.6)}body.ar-ai #aiTag{display:flex}#aiTag i{width:8px;height:8px;border-radius:50%;background:#fff;animation:blink 1s infinite}@keyframes blink{50%{opacity:.2}}
+#rulH{position:absolute;left:12%;right:12%;bottom:calc(196px + env(safe-area-inset-bottom));height:26px;background-image:repeating-linear-gradient(90deg,rgba(124,243,255,.9) 0 2px,transparent 2px 60px),repeating-linear-gradient(90deg,rgba(124,243,255,.45) 0 1px,transparent 1px 12px);background-size:60px 14px,12px 8px;background-repeat:repeat-x;background-position-y:12px,18px;mask-image:linear-gradient(90deg,transparent,#000 20%,#000 80%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 20%,#000 80%,transparent)}
+#rulHv{position:absolute;left:50%;bottom:calc(224px + env(safe-area-inset-bottom));transform:translateX(-50%);font:800 11px system-ui;color:var(--cy2);text-shadow:0 1px 3px #000}
+#rulV{position:absolute;left:8px;top:28%;bottom:30%;width:26px;background-image:repeating-linear-gradient(0deg,rgba(168,85,247,.95) 0 2px,transparent 2px 60px),repeating-linear-gradient(0deg,rgba(168,85,247,.5) 0 1px,transparent 1px 12px);background-size:14px 60px,8px 12px;background-repeat:repeat-y;mask-image:linear-gradient(transparent,#000 20%,#000 80%,transparent);-webkit-mask-image:linear-gradient(transparent,#000 20%,#000 80%,transparent)}
+#rulVv{position:absolute;left:36px;top:50%;font:800 11px system-ui;color:#d8b4fe;text-shadow:0 1px 3px #000}
+#rulAlt{position:absolute;left:12px;top:calc(108px + env(safe-area-inset-top));font:700 11px system-ui;padding:5px 9px;border-radius:999px;background:rgba(6,11,22,.6);border:1px solid var(--line)}
+#rulH::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 8px #fff}
+#surf{position:absolute;left:0;top:0;display:none;align-items:center;gap:8px;padding:7px 12px 7px 8px;margin:-60px 0 0 -10px;border-radius:999px;background:rgba(6,11,22,.78);border:1.5px solid var(--cy);font:800 13px system-ui;pointer-events:auto;white-space:nowrap;box-shadow:0 0 18px rgba(34,211,238,.5);transition:border-color .3s}
+#surf::before{content:"";width:22px;height:22px;border-radius:50%;background:var(--cy) center/14px no-repeat;box-shadow:0 0 10px currentColor}
+#surf[data-k=Pared]{border-color:#a855f7;box-shadow:0 0 18px rgba(168,85,247,.55)}#surf[data-k=Pared]::before{background-color:#a855f7}
+#surf[data-k=Techo]{border-color:#ff7a1a}#surf[data-k=Techo]::before{background-color:#ff7a1a}#surf[data-k=Superficie]{border-color:#e8b230}#surf[data-k=Superficie]::before{background-color:#e8b230}
+#surf small{font:600 11px system-ui;color:var(--mut)}#surf em{font:700 10px system-ui;font-style:normal;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.12)}
+#tape{position:absolute;left:0;top:0;display:none;pointer-events:none}#tapeLen{display:block;transform:translate(-50%,-140%);padding:5px 10px;border-radius:8px;background:#7cf3ff;color:#04111f;font:900 14px system-ui;box-shadow:0 0 16px rgba(124,243,255,.7)}
+/* procesamiento */
+#proc{position:fixed;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,rgba(34,211,238,.18),rgba(2,6,14,.94) 60%);backdrop-filter:blur(6px)}#proc.on{display:flex}
+#proc .bx{width:min(340px,88vw);text-align:center}#proc .cube{width:86px;height:86px;margin:0 auto 18px;border-radius:20px;background:var(--grad);animation:cb 1.4s cubic-bezier(.6,0,.4,1) infinite;box-shadow:0 0 40px rgba(34,211,238,.6)}@keyframes cb{50%{transform:rotate(180deg) scale(.82);border-radius:50%}}
+#proc h3{margin:0 0 14px;font:900 18px system-ui;letter-spacing:.06em}#proc ol{list-style:none;padding:0;margin:0;text-align:left}#proc li{display:flex;align-items:center;gap:10px;padding:8px 10px;margin:4px 0;border-radius:12px;color:var(--mut);font:600 14px system-ui;transition:.25s}
+#proc li::before{content:"";width:16px;height:16px;border-radius:50%;border:2px solid var(--line)}#proc li.run{color:#fff;background:rgba(34,211,238,.1)}#proc li.run::before{border-color:var(--cy);border-top-color:transparent;animation:spin .7s linear infinite}#proc li.ok{color:#fff}#proc li.ok::before{background:#34d399;border-color:#34d399}
+#autoRes{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:30;max-width:560px;margin:auto;padding:14px;border-radius:20px;background:rgba(10,19,36,.94);border:1px solid rgba(124,243,255,.35);box-shadow:0 0 30px rgba(34,211,238,.3);display:none}#autoRes.on{display:block;animation:up .35s cubic-bezier(.2,.9,.3,1)}
+#autoRes .rh{display:flex;justify-content:space-between;align-items:center}#autoRes .x{background:none;border:0;color:var(--mut);font-size:18px}#autoRes .rk{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0;text-align:center;font:600 10px system-ui;color:var(--mut)}#autoRes .rk span{display:block;font:900 18px system-ui;color:#fff}
+/* taller 3D */
+#v-3d.modeling #viewer{height:52vh}#mbar,#mprops,#mlab{display:none}#v-3d.modeling #mbar,#v-3d.modeling #mprops{display:block}#v-3d.modeling #mlab{display:block}
+#mlab{position:absolute;inset:0;pointer-events:none;overflow:hidden}#mlab span{position:absolute;left:0;top:0;padding:3px 7px;border-radius:7px;background:#ffd166;color:#1a1200;font:800 11px system-ui;white-space:nowrap}
+#mbar{margin:8px 0;padding:4px 8px;border-radius:18px;background:rgba(10,19,36,.8);border:1px solid var(--line)}#mbar::-webkit-scrollbar{display:none}
+#mbar .grp{display:block;padding:6px 0;border-bottom:1px solid var(--line)}#mbar .grp:last-child{border:0}#mbar .gb{overflow-x:auto;scrollbar-width:none;padding-bottom:2px}#mbar .gb::-webkit-scrollbar{display:none}#mbar .gl{font:800 9px system-ui;letter-spacing:.14em;color:var(--cy2);margin:0 0 5px 2px}#mbar .gb{display:flex;gap:5px}
+#mbar button{flex:none;min-width:54px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 6px;border-radius:12px;border:1px solid transparent;background:rgba(255,255,255,.04);color:var(--tx);font:700 10px system-ui;transition:.15s}#mbar button svg{width:22px;height:22px}#mbar button:active{transform:scale(.9)}#mbar button.on{background:var(--grad);color:#fff;box-shadow:0 0 12px rgba(34,211,238,.45)}
+#mbar .ax{min-width:34px}#mbar .ax[data-ax=x]{color:#ff5a6e}#mbar .ax[data-ax=y]{color:#5aff8c}#mbar .ax[data-ax=z]{color:#5aa8ff}#mbar .ax.on{color:#fff}
+#mprops.dis .need{opacity:.4;pointer-events:none}#mprops .g3{display:grid;grid-template-columns:auto repeat(3,1fr);gap:6px;align-items:center;margin:8px 0}#mprops .g3 span{font:700 11px system-ui;color:var(--mut)}
+#mprops input,.dlg select,.dlg input{width:100%;box-sizing:border-box;padding:8px;border-radius:10px;border:1px solid var(--line);background:rgba(2,6,14,.6);color:#fff;font:600 13px system-ui}
+#mprops .sec{font:800 10px system-ui;letter-spacing:.14em;color:var(--cy2);margin:12px 0 4px}#mprops .rw{display:flex;flex-wrap:wrap;gap:6px;align-items:center}#mprops .rw .btn{flex:1}#mColors{display:flex;gap:6px}#mColors button{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.4)}
+.tools4{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.prog{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}.prog button{display:flex;align-items:center;gap:10px;padding:11px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--tx);text-align:left;font:700 13px system-ui}.prog button i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font:900 12px system-ui;font-style:normal;color:#fff;flex:none}.prog small{display:block;font:600 10px system-ui;color:var(--mut)}
+/* tutorial */
+#tut{position:fixed;inset:0;z-index:97;display:none}#tut.on{display:block}#tut .hole{position:absolute;border-radius:18px;box-shadow:0 0 0 9999px rgba(2,6,14,.78),0 0 0 3px var(--cy),0 0 30px var(--cy);transition:all .35s cubic-bezier(.2,.9,.3,1);pointer-events:none}
+#tut .tip{position:absolute;left:16px;right:16px;max-width:420px;margin:auto;padding:16px;border-radius:18px;background:rgba(10,19,36,.97);border:1px solid rgba(124,243,255,.4);box-shadow:0 10px 40px rgba(0,0,0,.6);transition:top .35s cubic-bezier(.2,.9,.3,1)}
+#tut .tip h4{margin:0 0 6px;font:900 16px system-ui}#tut .tip p{margin:0;color:var(--mut);font:500 13.5px/1.5 system-ui}#tut .tn{display:flex;align-items:center;gap:8px;margin-top:12px}#tut .dots{flex:1;display:flex;gap:4px}#tut .dots i{width:6px;height:6px;border-radius:3px;background:var(--line);transition:.3s}#tut .dots i.on{width:18px;background:var(--grad)}
+#tut .k{display:inline-block;font:800 10px system-ui;letter-spacing:.12em;color:var(--cy2);margin-bottom:4px}
+
+/* puente con la pantalla de arranque de Android: misma imagen y color, luego se transforma en el intro */
+html,body{background:#060b16}
+#isplash{position:absolute;inset:0;z-index:5;background:#060b16;display:grid;place-items:center;animation:spl .55s cubic-bezier(.6,0,.3,1) .12s forwards;pointer-events:none}
+#isplash img{width:192px;height:192px;border-radius:50%;animation:spli .55s cubic-bezier(.6,0,.3,1) .12s forwards}
+@keyframes spl{to{background:rgba(6,11,22,0);visibility:hidden}}@keyframes spli{to{transform:scale(1.9);opacity:0;filter:blur(6px)}}
+#intro .wrap{animation:lgin .9s cubic-bezier(.2,1,.3,1) .15s both}#intro .scan{animation-delay:.25s;animation-duration:1s}#intro .shine{animation-delay:.6s;animation-duration:.9s}#intro .ring{animation-delay:.45s}#intro .ring.b{animation-delay:.6s}
+#intro .tg{animation-delay:.55s}#intro .ld{animation-delay:.45s}#intro .by{animation-delay:.7s}
 </style>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/","three-mesh-bvh":"https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.8/src/index.js","three-bvh-csg":"https://cdn.jsdelivr.net/npm/three-bvh-csg@0.0.16/src/index.js"}}</script>
 </head>
 <body>
-<div id="intro" role="presentation"><canvas id="ifx"></canvas><div class="wrap"><img src="logo.webp" alt="CAM3D"><div class="shine"></div><div class="scan"></div><div class="ring"></div><div class="ring b"></div></div><div class="tg">Escanea · Mide · Modela · Exporta</div><div class="ld"><div class="bar"><i id="ibar"></i></div><div class="pc"><span id="imsg">Iniciando motor 3D</span><b id="ipc">0%</b></div></div><button id="ienter" class="ienter">TOCA PARA ENTRAR</button><div class="by"><b>TECTÓNICA STUDIO</b><small>Arq. Félix Victoria</small><small>© 2026 · Todos los derechos reservados</small></div></div>
+<div id="intro" role="presentation"><div id="isplash"><img src="icon-512.png" alt=""></div><canvas id="ifx"></canvas><div class="wrap"><img src="logo.webp" alt="CAM3D"><div class="shine"></div><div class="scan"></div><div class="ring"></div><div class="ring b"></div></div><div class="tg">Escanea · Mide · Modela · Exporta</div><div class="ld"><div class="bar"><i id="ibar"></i></div><div class="pc"><span id="imsg">Iniciando motor 3D</span><b id="ipc">0%</b></div></div><button id="ienter" class="ienter">ENTRAR</button><div class="by"><b>TECTÓNICA STUDIO</b><small>© 2026 · Todos los derechos reservados</small></div></div>
 <script>
 window.SFX=(function(){var A=null,on=true;try{on=localStorage.cam3dSnd!=='0'}catch(e){}
 function ctx(){if(!A){var C=window.AudioContext||window.webkitAudioContext;if(!C)return null;A=new C()}if(A.state==='suspended')A.resume();return A}
@@ -193,11 +268,11 @@ return{play:play,ctx:ctx,get on(){return on},set on(v){on=v;try{localStorage.cam
 function rs(){W=c.width=innerWidth*devicePixelRatio;H=c.height=innerHeight*devicePixelRatio}rs();addEventListener('resize',rs);
 for(var k=0;k<110;k++)P.push({a:Math.random()*6.283,r:.15+Math.random()*.6,s:.0015+Math.random()*.004,z:Math.random(),c:Math.random()<.5?'124,243,255':'168,85,247'});
 function f(n){if(!run)return;var t=(n-t0)/1000;x.clearRect(0,0,W,H);var cx=W/2,cy=H*.40,m=Math.min(W,H);for(var j=0;j<P.length;j++){var p=P[j];p.a+=p.s*(1+(i.dataset.go?6:0));var rr=p.r*m*(.55+.45*Math.min(1,t/1.5)),px=cx+Math.cos(p.a)*rr,py=cy+Math.sin(p.a)*rr*.42,al=(.25+.75*p.z)*Math.min(1,t/1);x.fillStyle='rgba('+p.c+','+al+')';x.beginPath();x.arc(px,py,(1+2*p.z)*devicePixelRatio,0,6.283);x.fill()}requestAnimationFrame(f)}requestAnimationFrame(f);
-SFX.ctx();setTimeout(function(){SFX.play('whoosh')},150);setTimeout(function(){SFX.play('scan')},550);setTimeout(function(){SFX.play('impact')},1350);setTimeout(function(){SFX.play('shimmer')},1550);
-var M=['Iniciando motor 3D','Cargando realidad aumentada','Calibrando sensores','Preparando proyectos','Listo'],p0=performance.now(),D=3000;
-function ld(n){var k=Math.min(1,(n-p0-1200)/D);if(k<0)k=0;var e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;bar.style.transform='scaleX('+e+')';pc.textContent=Math.round(e*100)+'%';msg.textContent=M[Math.min(M.length-1,Math.floor(e*(M.length-1)+.0001))];if(k<1)requestAnimationFrame(ld);else{i.classList.add('ready');SFX.play('ok')}}requestAnimationFrame(ld);
-function go(){if(i.dataset.go)return;i.dataset.go=1;SFX.ctx();SFX.play('whoosh');SFX.play('impact',.25);i.classList.add('out');setTimeout(function(){run=0;i.remove()},900)}
-en.addEventListener('click',function(e){e.stopPropagation();go()});i.addEventListener('click',function(){if(i.classList.contains('ready'))go();else SFX.ctx()});
+SFX.ctx();setTimeout(function(){SFX.play('whoosh')},60);setTimeout(function(){SFX.play('scan')},300);setTimeout(function(){SFX.play('impact')},700);setTimeout(function(){SFX.play('shimmer')},1300);
+var M=['Iniciando motor 3D','Cargando realidad aumentada','Calibrando sensores','Preparando proyectos','Listo'],p0=performance.now(),D=1100;
+function ld(n){var k=Math.min(1,(n-p0-450)/D);if(k<0)k=0;var e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;bar.style.transform='scaleX('+e+')';pc.textContent=Math.round(e*100)+'%';msg.textContent=M[Math.min(M.length-1,Math.floor(e*(M.length-1)+.0001))];if(k<1)requestAnimationFrame(ld);else{i.classList.add('ready');SFX.play('ok')}}requestAnimationFrame(ld);
+function go(){if(i.dataset.go)return;i.dataset.go=1;SFX.ctx();SFX.play('whoosh');SFX.play('impact',.25);i.classList.add('out');setTimeout(function(){run=0;i.remove();window.CAM3D_tutFirst&&CAM3D_tutFirst()},520)}
+en.addEventListener('click',function(e){e.stopPropagation();go()});i.addEventListener('click',function(){SFX.ctx();if(i.classList.contains('ready'))go()});
 })();
 document.addEventListener('pointerdown',function(e){if(e.target.closest('.btn,.tile,.chip,nav button,.hb,.di,.pillbtn,#ar button'))SFX.play('tick')},{passive:true});
 </script>
@@ -205,6 +280,12 @@ document.addEventListener('pointerdown',function(e){if(e.target.closest('.btn,.t
 <main>
  <!-- INICIO -->
  <section class="view on" id="v-home">
+  <div class="hero2">
+   <button class="hbtn h-ai" id="btnAI"><span class="bdg">AGENTE</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9 16h6M2 12v3M22 12v3"/></svg><div><b>IA 3D</b><small>Te guía con voz y flechas · modela al 100 %</small></div></button>
+   <button class="hbtn h-auto" id="btnAuto"><span class="bdg">1 TOQUE</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><div><b>AUTOMÁTICO</b><small>Escanea · reconstruye 3D · genera planos</small></div></button>
+  </div>
+  <div class="subrow"><button class="pillbtn" id="btnTut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4z"/></svg>Tutorial</button><button class="pillbtn" data-go3="model"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5v10l-9 5-9-5V7z"/><path d="m3 7 9 5 9-5M12 12v10"/></svg>Taller 3D</button></div>
+  <div class="card flow" id="flow"><button data-f="home"><i>1</i>Captura</button><s></s><button data-f="3d"><i>2</i>Modelo 3D</button><s></s><button data-f="plan"><i>3</i>Plano</button><s></s><button data-f="exp"><i>4</i>Exportar</button></div>
   <div class="sect"><h3>Capturar</h3><p>Convierte espacios reales en modelos 3D precisos</p></div>
   <div class="grid tiles">
    <div class="tile t-bl" data-ar="plan"><span class="vf"><svg class="bi" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="30" height="30" rx="1"/><path d="M9 21h12v18M27 9v14h12M21 27h6"/></svg></span><b>Plano de planta</b><small>Toca las esquinas del piso con la cámara</small></div>
@@ -217,12 +298,56 @@ document.addEventListener('pointerdown',function(e){if(e.target.closest('.btn,.t
    <div class="st"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1"/><circle cx="4" cy="4" r="1.6"/><circle cx="20" cy="4" r="1.6"/><circle cx="4" cy="20" r="1.6"/><circle cx="20" cy="20" r="1.6"/></svg><div class="k"><span id="sArea">0</span><small> m²</small></div><span>de planta</span></div><div class="st"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3 8.7 2.7a1 1 0 0 0-1.4 0L2.7 7.3a1 1 0 0 0 0 1.4l12.6 12.6a1 1 0 0 0 1.4 0l4.6-4.6a1 1 0 0 0 0-1.4z"/><path d="m7.5 10.5 2-2M10.5 13.5l2-2M13.5 16.5l2-2"/></svg><div class="k" id="sMeas">0</div><span>medidas</span></div><div class="st"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg><div class="k" id="sPts">0</div><span>puntos 3D</span></div></div></div>
   <div class="card imp"><span class="ico big"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a5 5 0 0 1-.6-9.96A6 6 0 0 1 18 8a4.5 4.5 0 0 1 .5 9"/><path d="M12 12v9M8.5 15.5 12 12l3.5 3.5"/></svg></span><div style="flex:1;min-width:0"><b>Importar escaneo</b><div class="mut">Abre modelos o nubes hechos con otras apps (Scaniverse, Polycam, dron, escáner): PLY, OBJ, GLB/GLTF, LAS, XYZ, PTS, TXT, CSV.</div></div><label class="btn gbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Elegir archivo<input type="file" id="fImport" accept=".ply,.obj,.glb,.gltf,.las,.xyz,.pts,.txt,.csv" hidden></label></div>
   <div class="card ars" id="arCard"><span class="ico wi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><div class="mut" id="arStatus" style="flex:1">Comprobando compatibilidad de realidad aumentada…</div><a class="pillbtn play" id="arFix" href="https://play.google.com/store/apps/details?id=com.google.ar.core" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" class="ic"><path d="M4 2.5 14 12 4 21.5c-.6-.3-1-.9-1-1.6V4.1c0-.7.4-1.3 1-1.6z" fill="#00d3ff"/><path d="M17.5 8.6 14 12l3.5 3.4 3.4-2c1-.6 1-2.2 0-2.8z" fill="#ffd400"/><path d="M4 2.5c.5-.3 1.2-.3 1.8 0l11.7 6.1L14 12z" fill="#00f076"/><path d="M14 12l3.5 3.4-11.7 6.1c-.6.3-1.3.3-1.8 0z" fill="#ff3a44"/></svg>Actualizar</a></div>
-  <div class="copy"><img src="emblem-256.png" alt=""><b>TECTÓNICA STUDIO</b><span>CAM3D v1.0 · Arq. Félix Victoria</span><span>© 2026 Tectónica Studio. Todos los derechos reservados.</span><span>Prohibida su reproducción o distribución sin autorización (Ley 65-00, República Dominicana).</span></div>
+  <div class="copy"><img src="emblem-256.png" alt=""><b>TECTÓNICA STUDIO</b><span>CAM3D v2.0</span><span>© 2026 Tectónica Studio. Todos los derechos reservados.</span><span>Prohibida su reproducción o distribución sin autorización (Ley 65-00, República Dominicana).</span></div>
  </section>
  <!-- VISOR 3D -->
  <section class="view" id="v-3d">
   <h2>Modelo 3D</h2>
-  <div id="viewer"><div id="vhud"><button class="chip" id="cMeasure">📏 Medir</button><button class="chip on" id="cRoom">Muros</button><button class="chip on" id="cCloud">Nube</button><button class="chip on" id="cModel">Modelo</button><button class="chip" id="cTop">Planta</button><button class="chip" id="cFit">Encuadrar</button></div><div id="vinfo">Arrastra para girar · pellizca para acercar</div></div>
+  <div id="viewer"><div id="vhud"><button class="chip" id="cMeasure">📏 Medir</button><button class="chip on" id="cRoom">Muros</button><button class="chip on" id="cCloud">Nube</button><button class="chip on" id="cModel">Modelo</button><button class="chip" id="cTop">Planta</button><button class="chip" id="cFit">Encuadrar</button><button class="chip" id="cModelar">🛠 Modelar</button></div><div id="mlab"><span></span><span></span><span></span></div><div id="vinfo">Arrastra para girar · pellizca para acercar</div></div>
+
+  <div id="mbar">
+   <div class="grp"><div class="gl">CREAR</div><div class="gb">
+    <button data-p="cubo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5v10l-9 5-9-5V7z"/><path d="m3 7 9 5 9-5M12 12v10"/></svg>Cubo</button>
+    <button data-p="placa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1"/></svg>Cuadrado</button>
+    <button data-p="cilindro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/></svg>Círculo</button>
+    <button data-p="hexagono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l5 9-5 9H7l-5-9z"/></svg>Hexágono</button>
+    <button data-p="prisma"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 22 20H2z"/></svg>Triángulo</button>
+    <button data-p="esfera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="9" ry="3.5"/></svg>Esfera</button>
+    <button data-p="cono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 18c0 1.7 3.6 3 8 3s8-1.3 8-3z"/></svg>Cono</button>
+    <button data-p="toroide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></svg>Anillo</button></div></div>
+   <div class="grp"><div class="gl">TRANSFORMAR</div><div class="gb">
+    <button data-t="select" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 3 7 18 2.5-7.5L21 11z"/></svg>Elegir</button>
+    <button data-t="translate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20M12 2l-3 3M12 2l3 3M12 22l-3-3M12 22l3-3M2 12l3-3M2 12l3 3M22 12l-3-3M22 12l-3 3"/></svg>Mover</button>
+    <button data-t="rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Rotar</button>
+    <button data-t="scale"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 20 4M14 4h6v6M10 20H4v-6"/></svg>Escalar</button>
+    <button data-t="push"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="12" width="16" height="8" rx="1"/><path d="M12 10V2M9 5l3-3 3 3"/></svg>Push/Pull</button>
+    <button class="ax on" data-ax="">XYZ</button><button class="ax" data-ax="x">X</button><button class="ax" data-ax="y">Y</button><button class="ax" data-ax="z">Z</button>
+    <button id="mSpace">Global</button><button id="mSnap" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v8a6 6 0 0 0 12 0V3M6 7h4M14 7h4"/></svg>Imán</button><button id="mMulti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="11" height="11" rx="2"/><rect x="10" y="10" width="11" height="11" rx="2"/></svg>Multi</button></div></div>
+   <div class="grp"><div class="gl">BOOLEANAS</div><div class="gb">
+    <button data-a="union"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/></svg>Unir</button>
+    <button data-a="resta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="6"/><path d="M15 6a6 6 0 0 1 0 12" stroke-dasharray="2 2"/></svg>Sustraer</button>
+    <button data-a="inter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7.1a6 6 0 0 1 0 9.8a6 6 0 0 1 0-9.8z" fill="currentColor"/><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/></svg>Intersectar</button>
+    <button data-a="combine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12h8M5 8a4 4 0 1 0 0 8M19 8a4 4 0 1 1 0 8"/></svg>Conectar</button></div></div>
+   <div class="grp"><div class="gl">EDICIÓN</div><div class="gb">
+    <button data-a="dup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>Duplicar</button>
+    <button data-a="floor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M8 17V7h8v10M12 3v2"/></svg>Al piso</button>
+    <button data-a="all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4"/></svg>Todo</button>
+    <button data-a="undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Deshacer</button>
+    <button data-a="redo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg>Rehacer</button>
+    <button data-a="del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15"/></svg>Borrar</button>
+    <button data-a="obj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>OBJ</button></div></div>
+  </div>
+  <div class="card dis" id="mprops"><div class="row" style="justify-content:space-between"><b id="mSelName">Crea un sólido</b><span class="pill" id="mCount">0 sólidos</span></div>
+   <div class="need"><div class="sec">DIMENSIONES (m)</div><div class="g3"><span></span><span>Ancho X</span><span>Alto Y</span><span>Prof. Z</span><span>Medida</span><input id="mW" type="number" step="0.01" inputmode="decimal"><input id="mH" type="number" step="0.01" inputmode="decimal"><input id="mD" type="number" step="0.01" inputmode="decimal"><span>Posición</span><input id="mPX" type="number" step="0.05"><input id="mPY" type="number" step="0.05"><input id="mPZ" type="number" step="0.05"><span>Rotación °</span><input id="mRX" type="number" step="15"><input id="mRY" type="number" step="15"><input id="mRZ" type="number" step="15"></div>
+   <div class="mut" style="font-size:12px">Volumen: <b id="mVol">—</b></div>
+   <div class="sec">DEFORMAR · intensidad <span id="mAmtV">40%</span></div><input id="mAmt" type="range" min="-1" max="1" step="0.05" value="0.4" data-nb="1" style="padding:0">
+   <div class="rw" style="margin-top:6px"><button class="btn sec sm" data-def="taper">Afilar</button><button class="btn sec sm" data-def="twist">Torcer</button><button class="btn sec sm" data-def="bend">Doblar</button><button class="btn sec sm" data-def="bulge">Inflar</button><button class="btn sec sm" data-def="wave">Ondular</button></div>
+   <div class="sec">CORTAR POR PLANO · desfase (m)</div><div class="rw"><input id="mCutOff" type="number" step="0.05" value="0" data-nb="1" style="width:80px;flex:none"><button class="btn sec sm" data-cut="x">Corte X</button><button class="btn sec sm" data-cut="y">Corte Y</button><button class="btn sec sm" data-cut="z">Corte Z</button></div>
+   <div class="sec">ESPEJO Y MATRIZ</div><div class="rw"><button class="btn sec sm" data-mir="x">Espejo X</button><button class="btn sec sm" data-mir="y">Espejo Y</button><button class="btn sec sm" data-mir="z">Espejo Z</button></div>
+   <div class="rw" style="margin-top:6px"><select id="mArrAx" data-nb="1" style="width:64px;flex:none;padding:8px;border-radius:10px;background:rgba(2,6,14,.6);color:#fff;border:1px solid var(--line)"><option>x</option><option>y</option><option>z</option></select><input id="mArrN" type="number" value="4" min="2" max="50" data-nb="1" style="width:64px;flex:none" title="Copias"><input id="mArrG" type="number" value="0.1" step="0.05" data-nb="1" style="width:70px;flex:none" title="Separación"><button class="btn sec sm" id="mArr">Matriz</button></div>
+   <div class="sec">COLOR</div><div id="mColors"></div></div></div>
+  <div class="card"><b>Automatización 3D</b><div class="mut">De la captura de puntos al modelo listo para exportar, en un toque.</div>
+   <div class="tools4"><button class="btn sm" data-do="automodel">⚡ Modelar puntos</button><button class="btn sec sm" data-do="solids">🧱 Convertir a sólidos</button><button class="btn sec sm" data-do="dims">📐 Cotas automáticas</button><button class="btn sec sm" data-do="scale">⚖️ Escala automática</button><button class="btn sec sm" data-do="cal" style="grid-column:span 2">🎯 Calibrar escala con una medida real</button></div></div>
   <div class="card"><b>Medidas</b><div id="mList" class="list mut">Aún no hay medidas.</div></div>
  </section>
  <!-- PLANO -->
@@ -239,8 +364,11 @@ document.addEventListener('pointerdown',function(e){if(e.target.closest('.btn,.t
    <div class="grid3" style="margin-top:8px"><button class="btn sm" data-x="dxf">DXF</button><button class="btn sm" data-x="pdf">PDF</button><button class="btn sm" data-x="svg">SVG</button><button class="btn sm" data-x="png">PNG</button><button class="btn sm" data-x="csv">CSV</button></div></div>
   <div class="card"><b>Nube de puntos</b><div class="mut">Para ReCap, CloudCompare, Revit, AutoCAD.</div>
    <div class="grid3" style="margin-top:8px"><button class="btn sm" data-x="las">LAS</button><button class="btn sm" data-x="ply">PLY</button><button class="btn sm" data-x="pts">PTS</button><button class="btn sm" data-x="xyz">XYZ</button><button class="btn sm" data-x="pdxf">DXF puntos</button></div></div>
-  <div class="card"><b>Modelo 3D</b><div class="mut">Muros extruidos + modelo importado.</div>
-   <div class="grid3" style="margin-top:8px"><button class="btn sm" data-x="obj">OBJ</button><button class="btn sm" data-x="glb">GLB</button></div></div>
+  <div class="card"><b>Modelo 3D completo</b><div class="mut">Muros, piso, sólidos del Taller 3D y modelo importado, en metros y por capas.</div>
+   <div class="prog"><button data-x="skp"><i style="background:#c0392b">SU</i><span>SketchUp<small>.dae · Importar</small></span></button><button data-x="max"><i style="background:#0b8a8a">3ds</i><span>3ds Max<small>.obj + .mtl</small></span></button><button data-x="rvt"><i style="background:#1f5fae">R</i><span>Revit<small>.dxf 3D · Importar CAD</small></span></button><button data-x="maya"><i style="background:#13a3a3">M</i><span>Maya<small>.obj + .mtl</small></span></button><button data-x="acad"><i style="background:#d6222a">A</i><span>AutoCAD<small>.dxf 3D (3DFACE)</small></span></button><button data-x="stl"><i style="background:#6d28d9">3D</i><span>Impresión 3D<small>.stl</small></span></button></div>
+   <div class="row" style="margin-top:8px"><button class="btn sec sm" data-do="automodel">⚡ Modelar puntos primero</button></div></div>
+  <div class="card"><b>Modelo 3D (otros)</b><div class="mut">Muros extruidos + modelo importado.</div>
+   <div class="grid3" style="margin-top:8px"><button class="btn sm" data-x="obj">OBJ</button><button class="btn sm" data-x="glb">GLB</button><button class="btn sm" data-x="dae">DAE</button></div></div>
   <div class="card"><b>Fotos para fotogrametría</b><div class="mut" id="phCount">0 fotos</div><div class="thumbs" id="thumbs" style="margin-top:8px"></div>
    <div class="row" style="margin-top:8px"><label class="btn sec sm">+ Tomar / agregar fotos<input type="file" id="fPhotos" accept="image/*" capture="environment" multiple hidden></label><button class="btn sm" data-x="photos">Descargar fotos</button></div>
    <div class="mut" style="margin-top:6px">Toma 40–150 fotos alrededor del objeto con 60–70 % de traslape y procésalas en Meshroom o RealityScan (gratis) para obtener la malla; luego impórtala aquí.</div></div>
@@ -253,6 +381,12 @@ document.addEventListener('pointerdown',function(e){if(e.target.closest('.btn,.t
 <div id="ar">
  <div class="top"><button class="abtn" id="arClose">✕ Terminar</button><div class="sp"></div><div class="info" id="arInfo">Mueve el teléfono para detectar superficies</div></div>
  <div class="cross"></div>
+ <div id="rulH"></div><div id="rulHv">0°</div><div id="rulV"></div><div id="rulVv">0°</div><div id="rulAlt">Apunta al piso para nivelar</div>
+ <div id="surf"><span><span id="surfName">Piso</span> <small id="surfDist"></small></span><em>TOCA ✓</em></div>
+ <div id="tape"><span id="tapeLen">0.00 m</span></div>
+ <div id="aiTag"><i></i>IA 3D ACTIVA</div>
+ <div id="aiArrow" data-d="fwd"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h14M13 6l6 6-6 6"/></svg></div>
+ <div id="autoHud"><small>CAPTURA</small><div class="rg"><svg viewBox="0 0 104 104"><defs><linearGradient id="gr"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs><circle class="bg" cx="52" cy="52" r="46"/><circle id="autoRing" cx="52" cy="52" r="46"/></svg><b id="autoPct">0%</b></div><div id="autoHint">Apunta al piso</div><canvas id="autoRadar" width="224" height="224"></canvas></div>
  <div class="bot">
   <div class="modes"><button data-m="plan">Plano</button><button data-m="measure">Medir</button><button data-m="cloud">Escaneo 3D</button></div>
   <div class="acts"><button class="abtn" id="arUndo">↶ Deshacer</button><button class="shot" id="arShot" aria-label="Capturar"></button><button class="abtn" id="arDone">✓ Cerrar</button></div>
@@ -260,6 +394,9 @@ document.addEventListener('pointerdown',function(e){if(e.target.closest('.btn,.t
 </div>
 <div class="dlg" id="dlg"><div class="box"><div id="dlgBody"></div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn sec sm" id="dlgNo">Cancelar</button><button class="btn sm" id="dlgOk">Aceptar</button></div></div></div>
 <div id="toast"></div>
+<div id="proc"><div class="bx"><div class="cube"></div><h3>RECONSTRUYENDO EL ESPACIO</h3><ol><li>Limpiando la nube de puntos</li><li>Detectando piso y techo</li><li>Ajustando muros a escala real</li><li>Generando plano y cotas</li><li>Construyendo el modelo 3D</li></ol></div></div>
+<div id="autoRes"></div>
+<div id="tut"><div class="hole"></div><div class="tip"><span class="k" id="tutK"></span><h4 id="tutH"></h4><p id="tutP"></p><div class="tn"><div class="dots" id="tutD"></div><button class="btn sec sm" id="tutPrev">Atrás</button><button class="btn sm" id="tutNext">Siguiente</button></div></div></div>
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer"><div class="dh"><img src="logo.webp" alt="CAM3D"><button class="hb" id="dClose"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
 <div class="dproj"><span class="mut">Proyecto</span><b id="pname">—</b></div>
@@ -270,7 +407,7 @@ document.addEventListener('pointerdown',function(e){if(e.target.closest('.btn,.t
 <button class="di" id="dShare"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg><span>Compartir CAM3D</span></button>
 <button class="di" id="dHelp"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg><span>Guía rápida</span></button>
 <button class="di" id="dAbout"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Acerca de</span></button>
-<div class="dfoot"><b>TECTÓNICA STUDIO</b><span>Arq. Félix Victoria · © 2026</span></div></aside>
+<div class="dfoot"><b>TECTÓNICA STUDIO</b><span>© 2026 · Todos los derechos reservados</span></div></aside>
 <div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
 
 <script>
@@ -297,7 +434,7 @@ function U(){try{return JSON.parse(localStorage.cam3dUser||'{}')}catch(e){return
 function ini(n){return (n||'').trim().split(/\s+/).map(function(w){return w[0]}).slice(0,2).join('').toUpperCase()}
 function paintAv(){var u=U();if(u.name)$('#avTxt').textContent=ini(u.name)}paintAv();
 $('#btnUser').onclick=function(){var u=U();sheet('<div class="uhead"><div class="uav">'+(ini(u.name)||'?')+'</div><div><h4 style="margin:0">'+(u.name||'Mi perfil')+'</h4><span class="mut">'+(u.company||'Configura tus datos para los planos')+'</span></div></div><label>Nombre</label><input id="uN" value="'+(u.name||'')+'" placeholder="Arq. Nombre Apellido"><label>Empresa</label><input id="uC" value="'+(u.company||'')+'" placeholder="Tectónica Studio"><label>Correo</label><input id="uE" type="email" value="'+(u.email||'')+'" placeholder="correo@empresa.com"><div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn sec sm" id="uX">Cerrar</button><button class="btn sm" id="uS">Guardar perfil</button></div>');$('#uX').onclick=closeAll;$('#uS').onclick=function(){try{localStorage.cam3dUser=JSON.stringify({name:$('#uN').value,company:$('#uC').value,email:$('#uE').value})}catch(e){}paintAv();closeAll()}};
-$('#dAbout').onclick=function(){dr.classList.remove('on');sheet('<div style="text-align:center"><img src="logo.webp" style="width:180px;filter:drop-shadow(0 0 20px rgba(34,211,238,.45))"><h4>CAM3D v1.0</h4><p class="mut">Escaneo 3D, planos de planta y medidas con realidad aumentada para obras.</p><p><b style="letter-spacing:.3em">TECTÓNICA STUDIO</b><br><span class="mut">Arq. Félix Victoria</span></p><p class="mut" style="font-size:12px">© 2026 Tectónica Studio. Todos los derechos reservados. Prohibida su reproducción o distribución sin autorización (Ley 65-00, República Dominicana).</p></div>')};
+$('#dAbout').onclick=function(){dr.classList.remove('on');sheet('<div style="text-align:center"><img src="logo.webp" style="width:180px;filter:drop-shadow(0 0 20px rgba(34,211,238,.45))"><h4>CAM3D v1.0</h4><p class="mut">Escaneo 3D, planos de planta y medidas con realidad aumentada para obras.</p><p><b style="letter-spacing:.3em">TECTÓNICA STUDIO</b></p><p class="mut" style="font-size:12px">© 2026 Tectónica Studio. Todos los derechos reservados. Prohibida su reproducción o distribución sin autorización (Ley 65-00, República Dominicana).</p></div>')};
 $('#dHelp').onclick=function(){dr.classList.remove('on');sheet('<h4>Guía rápida</h4><div class="nt"><b>1</b><div><b>Plano de planta</b><span class="mut">Apunta al piso, espera el aro y toca cada esquina. Cierra en la primera esquina.</span></div></div><div class="nt"><b>2</b><div><b>Medir</b><span class="mut">Toca el punto inicial y el final; la distancia se guarda en el proyecto.</span></div></div><div class="nt"><b>3</b><div><b>Escaneo 3D</b><span class="mut">Con sensor de profundidad, toca el botón y recorre el objeto para capturar la nube.</span></div></div><div class="nt"><b>4</b><div><b>Exportar</b><span class="mut">Descarga DXF, PDF, LAS, PLY, OBJ o GLB para tus programas.</span></div></div>')};
 $('#dShare').onclick=function(){closeAll();var d={title:'CAM3D',text:'CAM3D · Escaneo 3D de obra por Tectónica Studio',url:location.href};if(navigator.share)navigator.share(d).catch(function(){});else if(navigator.clipboard)navigator.clipboard.writeText(location.href)};
 var st=$('#arStatus'),cd=$('#arCard');new MutationObserver(function(){var t=st.innerHTML;if(/^\s*(✅|⚠️)/.test(t)){var ok=t.indexOf('✅')>-1;st.innerHTML=t.replace(/^\s*(✅|⚠️)\s*/,'');cd.classList.toggle('ok',ok);cd.querySelector('.wi').innerHTML=ok?'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg>':cd.querySelector('.wi').innerHTML}}).observe(st,{childList:true,subtree:true,characterData:true});
@@ -305,5 +442,35 @@ var sy=0;sh.addEventListener('touchstart',function(e){sy=e.touches[0].clientY},{
 })();
 </script>
 <script type="module" src="app.js"></script>
+<script>
+(function(){
+var $=function(q){return document.querySelector(q)};
+// flujo de trabajo
+window.CAM3D_flow=function(st){var f=$('#flow');if(!f)return;var ok=[st.pts>0||st.rooms>0||st.model,st.rooms>0||st.model||st.pts>0,st.rooms>0,st.rooms>0||st.model];var b=f.querySelectorAll('button'),s=f.querySelectorAll('s');b.forEach(function(e,i){e.classList.toggle('ok',!!ok[i]);e.querySelector('i').textContent=ok[i]?'✓':(i+1)});s.forEach(function(e,i){e.classList.toggle('ok',!!(ok[i]&&ok[i+1]))})};
+document.querySelectorAll('#flow [data-f]').forEach(function(b){b.onclick=function(){if(b.dataset.f==='home'){window.CAM3D_startAuto&&CAM3D_startAuto();return}window.CAM3D_show&&CAM3D_show(b.dataset.f)}});
+document.querySelectorAll('[data-go3]').forEach(function(b){b.onclick=function(){CAM3D_show('3d');setTimeout(function(){var c=$('#cModelar');if(c&&!document.getElementById('v-3d').classList.contains('modeling'))c.click()},350)}});
+// tutorial
+var S=[
+{k:'BIENVENIDO',h:'CAM3D en 60 segundos',p:'Te muestro cómo capturar un espacio real, convertirlo en 3D, generar el plano con medidas y exportarlo a tus programas.',el:null},
+{k:'PASO 1 · AGENTE',h:'IA 3D',p:'El modo más fácil: la IA te dice por voz y con flechas hacia dónde mover el teléfono (izquierda, derecha, arriba, abajo) hasta capturar el 100 % y luego modela todo sola.',el:'#btnAI'},
+{k:'PASO 1 · RÁPIDO',h:'Automático',p:'Abre la cámara y graba mientras recorres el espacio. La casilla muestra el % de captura; al completarse te avisa, reconstruye el 3D y genera el plano y sus cotas.',el:'#btnAuto'},
+{k:'EN LA CÁMARA',h:'Reglas y superficies',p:'Verás reglas que se mueven con la cámara (rumbo e inclinación) y una etiqueta que reconoce Piso, Pared o Techo. Tócala para confirmarla: así la altura y los niveles se calculan solos.',el:null},
+{k:'MODO MANUAL',h:'Herramientas de captura',p:'Plano: toca cada esquina del piso. Medir: dos toques = una distancia con cinta métrica en vivo. Escaneo 3D: nube de puntos con el sensor de profundidad. Fotos: para fotogrametría.',el:'.tiles'},
+{k:'TU PROYECTO',h:'Resumen y flujo',p:'Aquí ves área, medidas y puntos, y el avance Captura → 3D → Plano → Exportar. Toca cualquier paso para ir directo.',el:'#flow'},
+{k:'MODELO 3D',h:'Taller 3D profesional',p:'En la pestaña 3D activa “Modelar”: cubos, círculos, hexágonos, push/pull, mover/rotar/escalar por ejes X·Y·Z, cortar, deformar, unir, sustraer, intersectar, espejo, matriz y cotas exactas.',el:'nav [data-v="3d"]'},
+{k:'PLANO',h:'Plano con medidas',p:'Planta a escala con cotas de cada muro, área y perímetro. Puedes agregar espacios manuales por medidas.',el:'nav [data-v="plan"]'},
+{k:'EXPORTAR',h:'A tus programas',p:'Modelo completo para SketchUp, 3ds Max, Revit, Maya y AutoCAD; plano en DXF/PDF; nube en LAS/PLY/PTS para ReCap.',el:'nav [data-v="exp"]'},
+{k:'CONSEJOS',h:'Para una captura perfecta',p:'Buena luz, mueve el teléfono despacio, apunta primero al piso, recorre todo el perímetro a 1–2 m de las paredes y sube y baja la cámara. ¡Listo para empezar!',el:null}];
+var t=$('#tut'),hole=t.querySelector('.hole'),tip=t.querySelector('.tip'),ix=0;
+function place(){var st=S[ix];$('#tutK').textContent=st.k+' · '+(ix+1)+'/'+S.length;$('#tutH').textContent=st.h;$('#tutP').textContent=st.p;$('#tutD').innerHTML=S.map(function(_,i){return'<i class="'+(i===ix?'on':'')+'"></i>'}).join('');$('#tutPrev').style.visibility=ix?'visible':'hidden';$('#tutNext').textContent=ix===S.length-1?'Empezar':'Siguiente';
+var e=st.el&&$(st.el);if(e){e.scrollIntoView({block:'center',behavior:'smooth'});setTimeout(function(){var r=e.getBoundingClientRect(),p=8;hole.style.opacity=1;hole.style.left=(r.left-p)+'px';hole.style.top=(r.top-p)+'px';hole.style.width=(r.width+2*p)+'px';hole.style.height=(r.height+2*p)+'px';var below=r.bottom+p+14,th=tip.offsetHeight;tip.style.top=(below+th<innerHeight-20?below:Math.max(16,r.top-p-14-th))+'px'},260)}else{hole.style.left='50%';hole.style.top='45%';hole.style.width='0px';hole.style.height='0px';tip.style.top=(innerHeight/2-tip.offsetHeight/2)+'px'}window.SFX&&SFX.play('tick')}
+function open(){window.CAM3D_show&&CAM3D_show('home');ix=0;t.classList.add('on');place();try{localStorage.cam3dTut='1'}catch(e){}}
+function close(){t.classList.remove('on')}
+$('#tutNext').onclick=function(){if(ix<S.length-1){ix++;place()}else{close();window.SFX&&SFX.play('ok')}};$('#tutPrev').onclick=function(){if(ix>0){ix--;place()}};
+t.addEventListener('click',function(e){if(e.target===t)close()});
+$('#btnTut').onclick=open;var dh=$('#dHelp');if(dh){var o=dh.onclick;dh.addEventListener('click',function(e){e.stopImmediatePropagation();document.getElementById('drawer').classList.remove('on');document.getElementById('scrim').classList.remove('on');open()},true)}
+window.CAM3D_tutFirst=function(){try{if(!localStorage.cam3dTut)setTimeout(open,400)}catch(e){}};
+})();
+</script>
 </body>
 </html>
