@@ -1,0 +1,76 @@
+name: Instalador iPhone CAM3D
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['ios_src.bundle', 'app.js', 'index.html', 'core.js', 'modeler.js', 'ai.js', 'native.js', '.github/workflows/ios.yml']
+permissions:
+  contents: write
+jobs:
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Desempacar proyecto iOS
+        run: |
+          python3 - <<'PY'
+          import os
+          txt = open('ios_src.bundle', encoding='utf-8').read()
+          for part in txt.split('=====FILE ')[1:]:
+              path, _, body = part.partition('\n')
+              path = path.strip()
+              os.makedirs(os.path.dirname(path), exist_ok=True)
+              open(path, 'w', encoding='utf-8').write(body)
+              print('archivo', path, len(body))
+          PY
+      - name: Copiar CAM3D dentro de la app (sin internet)
+        run: |
+          set -e
+          W=ios/www
+          mkdir -p $W/lib/three/build $W/lib/three/examples/jsm $W/lib/three-mesh-bvh $W/lib/three-bvh-csg
+          cp index.html app.js core.js modeler.js ai.js native.js logo.webp emblem-256.png icon-192.png icon-512.png icon-maskable-512.png manifest.webmanifest $W/
+          mkdir -p npmtmp && cd npmtmp && npm pack three@0.160.0 three-mesh-bvh@0.7.8 three-bvh-csg@0.0.16 >/dev/null
+          for f in *.tgz; do mkdir -p "${f%.tgz}" && tar xzf "$f" -C "${f%.tgz}"; done
+          cd ..
+          cp npmtmp/three-0.160.0/package/build/three.module.js $W/lib/three/build/
+          for d in controls exporters loaders utils; do cp -r npmtmp/three-0.160.0/package/examples/jsm/$d $W/lib/three/examples/jsm/; done
+          cp -r npmtmp/three-mesh-bvh-0.7.8/package/src $W/lib/three-mesh-bvh/
+          cp -r npmtmp/three-bvh-csg-0.0.16/package/src $W/lib/three-bvh-csg/
+          node desktop/fix-importmap.js $W/index.html
+          if grep -n "https://" $W/index.html | grep -i "importmap\|three" ; then echo "AVISO: quedan rutas externas"; fi
+          A=ios/CAM3D/Assets.xcassets
+          mkdir -p $A/AppIcon.appiconset
+          echo '{"info":{"author":"xcode","version":1}}' > $A/Contents.json
+          echo '{"images":[{"filename":"icon-1024.png","idiom":"universal","platform":"ios","size":"1024x1024"}],"info":{"author":"xcode","version":1}}' > $A/AppIcon.appiconset/Contents.json
+          sips -s format png -z 1024 1024 icon-512.png --out $A/AppIcon.appiconset/icon-1024.png
+      - name: Generar proyecto Xcode
+        run: |
+          brew install xcodegen
+          cd ios && xcodegen generate
+      - name: Compilar
+        working-directory: ios
+        run: |
+          xcodebuild -version
+          xcodebuild -project CAM3D.xcodeproj -target CAM3D -configuration Release -sdk iphoneos SYMROOT="$PWD/build" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build > build.log 2>&1 || { grep -n "error:" -A4 build.log | head -150; tail -40 build.log; exit 1; }
+          grep -c "warning:" build.log || true
+          tail -3 build.log
+      - name: Empaquetar .ipa
+        working-directory: ios
+        run: |
+          set -e
+          A=build/Release-iphoneos/CAM3D.app
+          test -f $A/CAM3D
+          test -f $A/www/index.html
+          test -f $A/www/lib/three/build/three.module.js
+          rm -rf Payload && mkdir Payload && cp -R $A Payload/
+          zip -qry CAM3D_TectonicaStudio_V3.0_iPhone.ipa Payload
+          ls -la *.ipa
+      - name: Publicar
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete v3.0-iphone -y --cleanup-tag || true
+          gh release create v3.0-iphone ios/CAM3D_TectonicaStudio_V3.0_iPhone.ipa ios/INSTALAR_EN_IPHONE.txt --title "CAM3D v3.0 · iPhone" --notes "Instalador de CAM3D v3.0 para iPhone (.ipa). App local: todo el programa vive dentro del teléfono. Cámara AR con ARKit. Ver INSTALAR_EN_IPHONE.txt. Tectónica Studio. Todos los derechos reservados."
