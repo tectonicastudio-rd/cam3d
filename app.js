@@ -335,7 +335,7 @@ const AR = {
     $('#autoHint').textContent = txt; const ar = $('#aiArrow'); ar.dataset.d = dir;
     if (!this.ai) return; const now = performance.now();
     if (dir !== this._gd || now - this._gt > 6000) { if (now - (this._gt || 0) > 2600 || dir === 'ok') { this._gd = dir; this._gt = now; this.say(dir === 'ok' ? 'Captura completa. Estoy reconstruyendo el modelo.' : txt); window.SFX && SFX.play(dir === 'ok' ? 'shimmer' : 'tick'); if (navigator.vibrate) navigator.vibrate(dir === 'left' ? [30, 60, 30] : dir === 'right' ? [60] : 15); } }
-    if (window.AIB && st && dir !== 'ok' && now - (this._aiT || 0) > 16000) { this._aiT = now; AIB.coach(st).then(t => { if (t && this.session && !this.done && this.ai) { $('#aiSay').textContent = t; $('#aiSay').classList.add('on'); this.say(t); this._gt = performance.now(); clearTimeout(this._aiH); this._aiH = setTimeout(() => $('#aiSay').classList.remove('on'), 7000); } }); }
+    if (window.AIB && st && dir !== 'ok' && now - (this._aiT || 0) > AIB.coachInterval()) { this._aiT = now; AIB.coach(st).then(t => { if (t && this.session && !this.done && this.ai) { $('#aiSay').textContent = t; $('#aiSay').classList.add('on'); this.say(t); this._gt = performance.now(); clearTimeout(this._aiH); this._aiH = setTimeout(() => $('#aiSay').classList.remove('on'), 7000); } }); }
     if (pct >= 50 && !this._s50) { this._s50 = 1; this.say('Vas por la mitad. Excelente.'); } if (pct >= 80 && !this._s80) { this._s80 = 1; this.say('Ochenta por ciento. Casi terminamos.'); }
   },
   say(t) { try { if (!window.speechSynthesis || !(window.SFX ? SFX.on : true)) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'es-ES'; const v = speechSynthesis.getVoices().find(v => /^es/i.test(v.lang)); if (v) u.voice = v; u.rate = 1.05; speechSynthesis.speak(u); } catch (e) { } },
@@ -469,7 +469,7 @@ const esc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', 
 const md = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/^#+\s*(.+)$/gm, '<b>$1</b>').replace(/^\s*[-*•]\s+/gm, '• ').replace(/\n/g, '<br>');
 async function aiReport(r) {
   openChat(); const id = addMsg('ai', '<i class="dots"><b></b><b></b><b></b></i> Analizando ' + esc(r.name) + '…');
-  try { const t = await AIB.report(roomCtx(r)); setMsg(id, md(t)); chatHist.push({ role: 'assistant', content: t }); } catch (e) { setMsg(id, 'No pude conectar con la IA (' + esc(e.message) + '). Revisa tu conexión o configura una clave gratuita en ⚙️.'); }
+  try { const t = await AIB.report(roomCtx(r), {}, w => setMsg(id, '⏳ IA gratuita ocupada, respondo en ' + w + ' s… (con una clave gratis de Gemini en ⚙️ es inmediato)')); setMsg(id, md(t)); chatHist.push({ role: 'assistant', content: t }); } catch (e) { setMsg(id, 'No pude conectar con la IA (' + esc(e.message) + '). Revisa tu conexión o configura una clave gratuita en ⚙️.'); }
 }
 let chatHist = [];
 function addMsg(who, html) { const d = document.createElement('div'); d.className = 'cm ' + who; d.innerHTML = html; d.id = 'm' + Date.now() + Math.random().toString(36).slice(2, 6); $('#aiLog').appendChild(d); $('#aiLog').scrollTop = 1e9; return d.id; }
@@ -478,7 +478,7 @@ function openChat() { $('#aiChat').classList.add('on'); $('#aiEng').textContent 
 async function sendChat(q) {
   q = (q || $('#aiIn').value).trim(); if (!q) return; $('#aiIn').value = ''; addMsg('me', esc(q)); const id = addMsg('ai', '<i class="dots"><b></b><b></b><b></b></i>');
   if (!window.AIB) { setMsg(id, 'La IA aún se está cargando, intenta de nuevo.'); return; }
-  try { const t = await AIB.ask(q, projCtx(), chatHist); chatHist.push({ role: 'user', content: q }, { role: 'assistant', content: t }); setMsg(id, md(t)); $('#aiEng').textContent = AIB.engine; window.SFX && SFX.play('ok'); }
+  try { const t = await AIB.ask(q, projCtx(), chatHist, w => setMsg(id, '⏳ IA gratuita ocupada, respondo en ' + w + ' s… (con una clave gratis de Gemini en ⚙️ es inmediato)')); chatHist.push({ role: 'user', content: q }, { role: 'assistant', content: t }); setMsg(id, md(t)); $('#aiEng').textContent = AIB.engine; window.SFX && SFX.play('ok'); }
   catch (e) { setMsg(id, 'Sin respuesta de la IA (' + esc(e.message) + '). Si estás sin internet, las herramientas de medición siguen funcionando.'); }
 }
 $('#aiSend').onclick = () => sendChat(); $('#aiIn').onkeydown = e => { if (e.key === 'Enter') sendChat(); };
