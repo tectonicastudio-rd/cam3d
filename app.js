@@ -211,7 +211,7 @@ const AR = {
     let lastErr = null; this.session = null;
     let saved = -1; try { saved = +(localStorage.cam3dXR ?? -1); } catch (e) { } const order = configs.map((c, k) => k); if (saved >= 0 && saved < configs.length) { order.splice(order.indexOf(saved), 1); order.unshift(saved); }
     for (const k of order) { const cfg = configs[k]; try { this.session = await navigator.xr.requestSession('immersive-ar', cfg); try { localStorage.cam3dXR = k; } catch (e) { } break; } catch (e) { lastErr = e; if (e && e.name === 'NotAllowedError' && /gesture|activation/i.test(e.message || '')) break; } }
-    if (!this.session) { r.domElement.remove(); try { speechSynthesis.cancel(); } catch (e) { } toast('No se pudo iniciar la cámara AR' + (lastErr ? ' (' + lastErr.message + ')' : '') + '. Verifica que "Servicios de Google Play para RA" esté instalado y actualizado, y que la app tenga permiso de cámara.', 7000); return; }
+    if (!this.session) { r.domElement.remove(); try { speechSynthesis.cancel(); } catch (e) { } arFailed(mode, lastErr); return; }
     const ses = this.session; this.depth = !!(ses.enabledFeatures && ses.enabledFeatures.includes('depth-sensing'));
     $('#ar').style.display = 'block'; this.setMode(mode);
     r.xr.setReferenceSpaceType('local'); await r.xr.setSession(ses);
@@ -399,6 +399,18 @@ $('#arShot').onclick = e => { e.stopPropagation(); AR.capture(); };
 $('#arUndo').onclick = e => { e.stopPropagation(); AR.undo(); };
 $('#arDone').onclick = $('#arClose').onclick = e => { e.stopPropagation(); if (AR.session) AR.session.end(); };
 $('#ar').addEventListener('beforexrselect', e => e.preventDefault());
+// ---------------- si la AR no arranca dentro de la app: abrirla en Chrome ----------------
+const IN_APP = (() => { try { if (document.referrer.startsWith('android-app://')) sessionStorage.cam3dTWA = '1'; return sessionStorage.cam3dTWA === '1' || matchMedia('(display-mode: standalone)').matches; } catch (e) { return false; } })();
+async function arFailed(mode, err) {
+  const ua = navigator.userAgent, and = (ua.match(/Android [\d.]+/) || ['Android ?'])[0], chr = (ua.match(/Chrome\/([\d]+)/) || ['', '?'])[1];
+  const info = `<p class="mut" style="font-size:12px;margin:8px 0 0">${and} · Chrome ${chr} · ${IN_APP ? 'app instalada' : 'navegador'} · ${err ? err.name : ''}</p>`;
+  if (IN_APP) {
+    const go = await dialog('<h2 style="margin:0 0 6px">📷 Abramos la cámara en Chrome</h2><p class="mut" style="margin:0">Tu teléfono no permite la realidad aumentada dentro de la app instalada. CAM3D puede abrir la captura en <b>Chrome</b>: tus datos se comparten y el resultado aparece en tu proyecto.</p>' + info, 'Abrir en Chrome');
+    if (go) { const u = 'tectonicastudio-rd.github.io/cam3d/index.html?ar=' + encodeURIComponent(mode); location.href = 'intent://' + u + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent('https://' + u) + ';end'; }
+    return;
+  }
+  await dialog('<h2 style="margin:0 0 6px">📷 La cámara AR no arrancó</h2><p class="mut" style="margin:0">Chrome no pudo iniciar la realidad aumentada en este teléfono. Prueba en este orden:</p><ol style="margin:8px 0 0;padding-left:20px;line-height:1.6;font-size:14px"><li>Play Store › actualiza <b>Google Chrome</b>.</li><li>Play Store › instala o actualiza <b>Servicios de Google Play para RA</b> (ARCore).</li><li>Reinicia el teléfono y vuelve a intentar.</li><li>Verifica que tu modelo esté en la lista de equipos compatibles con ARCore.</li></ol>' + info, 'Entendido');
+}
 // ---------------- verificación automática de la cámara ----------------
 const CAM_STEPS = '<ol style="margin:8px 0 0;padding-left:20px;line-height:1.6;font-size:14px"><li>Abre <b>Ajustes</b> del teléfono › <b>Aplicaciones</b> › <b>Chrome</b> › <b>Permisos</b> › <b>Cámara</b> › <b>Permitir</b>.</li><li>Abre <b>Chrome</b> › ⋮ › <b>Configuración</b> › <b>Configuración de sitios</b> › <b>Cámara</b> y permite <b>tectonicastudio-rd.github.io</b>. Revisa también <b>Realidad aumentada</b>.</li><li>Vuelve a CAM3D y toca <b>Reintentar</b>.</li></ol>';
 async function camState() { try { return (await navigator.permissions.query({ name: 'camera' })).state; } catch (e) { return 'unknown'; } }
@@ -591,3 +603,8 @@ $$('[data-ar]').forEach(t => t.onclick = () => AR.start(t.dataset.ar));
   await loadModel().catch(() => { }); refresh(); AR.check();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
 })();
+
+// abrir captura pedida desde la app (?ar=modo)
+(() => { const m = new URLSearchParams(location.search).get('ar'); if (!m || !['plan', 'measure', 'cloud', 'auto', 'ai'].includes(m)) return;
+  const go = async () => { if (await dialog('<h2 style="margin:0 0 6px">📷 Cámara lista en Chrome</h2><p class="mut" style="margin:0">Toca <b>Iniciar</b> para abrir la captura. Al terminar, vuelve a la app CAM3D: el resultado estará en tu proyecto.</p>', 'Iniciar')) AR.start(m); };
+  const wait = () => { if (document.getElementById('intro')) { setTimeout(wait, 400); return; } setTimeout(go, 300); }; wait(); })();
