@@ -1,0 +1,42 @@
+{
+  "name": "cam3d",
+  "productName": "CAM3D",
+  "version": "3.0.0",
+  "description": "CAM3D · Tectónica Studio",
+  "author": "Tectónica Studio",
+  "license": "UNLICENSED",
+  "main": "main.js",
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.tectonicastudio.cam3d",
+    "productName": "CAM3D",
+    "copyright": "© 2026 Tectónica Studio. Todos los derechos reservados.",
+    "files": ["main.js", "preload.js", "www/**/*"],
+    "directories": { "output": "dist", "buildResources": "build" },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.png",
+      "artifactName": "CAM3D_TectonicaStudio_V3.0_Windows_Instalador.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CAM3D",
+      "uninstallDisplayName": "CAM3D · Tectónica Studio"
+    },
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["universal"] }],
+      "icon": "build/icon.png",
+      "category": "public.app-category.graphics-design",
+      "identity": "-",
+      "artifactName": "CAM3D_TectonicaStudio_V3.0_Mac_Instalador.${ext}"
+    },
+    "dmg": { "title": "CAM3D" }
+  }
+}
