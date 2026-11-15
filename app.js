@@ -190,6 +190,7 @@ const AR = {
   async start(mode) {
     if (!this.supported) await this.check();
     if (!this.supported) { toast('Realidad aumentada no disponible: instala o actualiza Servicios de Google Play para RA', 5000); return; }
+    if (!(await ensureCamera())) return;
     this.mode = mode; this.pts = []; this.mPts = []; this.added = 0; this.auto = mode === 'auto' || mode === 'ai'; this.ai = mode === 'ai'; if (this.ai) mode = 'auto'; this._s50 = this._s80 = 0; this._aiT = performance.now() - 10000; this._gd = null; this._gt = 0; this._lp = null; this.vox = new Set(); this.azb = new Uint16Array(36); this.vy = []; this.cov = 0; this.done = false; this.floorY = null; this.lastCov = 0; this.tags = [];
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true }); r.xr.enabled = true; r.setPixelRatio(devicePixelRatio); r.setSize(innerWidth, innerHeight); r.domElement.style.cssText = 'position:fixed;inset:0;z-index:40'; document.body.appendChild(r.domElement); this.r = r;
     const s = new THREE.Scene(); s.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2)); this.s = s; this.cam = new THREE.PerspectiveCamera();
@@ -398,6 +399,27 @@ $('#arShot').onclick = e => { e.stopPropagation(); AR.capture(); };
 $('#arUndo').onclick = e => { e.stopPropagation(); AR.undo(); };
 $('#arDone').onclick = $('#arClose').onclick = e => { e.stopPropagation(); if (AR.session) AR.session.end(); };
 $('#ar').addEventListener('beforexrselect', e => e.preventDefault());
+// ---------------- verificación automática de la cámara ----------------
+const CAM_STEPS = '<ol style="margin:8px 0 0;padding-left:20px;line-height:1.6;font-size:14px"><li>Abre <b>Ajustes</b> del teléfono › <b>Aplicaciones</b> › <b>Chrome</b> › <b>Permisos</b> › <b>Cámara</b> › <b>Permitir</b>.</li><li>Abre <b>Chrome</b> › ⋮ › <b>Configuración</b> › <b>Configuración de sitios</b> › <b>Cámara</b> y permite <b>tectonicastudio-rd.github.io</b>. Revisa también <b>Realidad aumentada</b>.</li><li>Vuelve a CAM3D y toca <b>Reintentar</b>.</li></ol>';
+async function camState() { try { return (await navigator.permissions.query({ name: 'camera' })).state; } catch (e) { return 'unknown'; } }
+async function ensureCamera() {
+  let st = await camState(); let ok = false; try { ok = localStorage.cam3dCamOK === '1'; } catch (e) { }
+  if (st === 'granted' || (st === 'unknown' && ok)) return true;
+  if (st === 'denied') return camBlocked();
+  // pendiente: pedir el permiso ahora mismo (Android muestra su ventana)
+  try { const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); s.getTracks().forEach(t => t.stop()); try { localStorage.cam3dCamOK = '1'; } catch (e) { } }
+  catch (e) { return camBlocked(e); }
+  window.SFX && SFX.play('ok');
+  return await dialog('<h2 style="margin:0 0 6px">✅ Cámara activada</h2><p class="mut" style="margin:0">El permiso quedó concedido. Toca <b>Iniciar</b> para abrir la cámara de realidad aumentada.</p>', 'Iniciar');
+}
+async function camBlocked(e) {
+  try { localStorage.removeItem('cam3dCamOK'); } catch (er) { }
+  const again = await dialog('<h2 style="margin:0 0 6px">📷 La cámara está bloqueada</h2><p class="mut" style="margin:0">Android no permite que una app desbloquee la cámara por sí sola. Actívala así (30 segundos):</p>' + CAM_STEPS + (e && e.name && e.name !== 'NotAllowedError' ? '<p class="mut" style="font-size:12px">Detalle: ' + e.name + '</p>' : ''), 'Reintentar');
+  if (!again) return false;
+  const st = await camState(); if (st === 'granted') return true;
+  try { const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); s.getTracks().forEach(t => t.stop()); try { localStorage.cam3dCamOK = '1'; } catch (er) { } return await dialog('<h2 style="margin:0 0 6px">✅ Cámara activada</h2><p class="mut" style="margin:0">Toca <b>Iniciar</b>.</p>', 'Iniciar'); }
+  catch (er) { toast('La cámara sigue bloqueada. Revisa los pasos en Ajustes.', 4500); return false; }
+}
 // ---------------- permisos de cámara ----------------
 (function permCard() {
   const ar = $('#arCard'); if (!ar) return;
