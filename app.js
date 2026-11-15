@@ -190,7 +190,7 @@ const AR = {
   async start(mode) {
     if (!this.supported) await this.check();
     if (!this.supported) { toast('Realidad aumentada no disponible: instala o actualiza Servicios de Google Play para RA', 5000); return; }
-    this.mode = mode; this.pts = []; this.mPts = []; this.added = 0; this.auto = mode === 'auto' || mode === 'ai'; this.ai = mode === 'ai'; if (this.ai) mode = 'auto'; this._s50 = this._s80 = 0; this._gd = null; this._gt = 0; this._lp = null; this.vox = new Set(); this.azb = new Uint16Array(36); this.vy = []; this.cov = 0; this.done = false; this.floorY = null; this.lastCov = 0; this.tags = [];
+    this.mode = mode; this.pts = []; this.mPts = []; this.added = 0; this.auto = mode === 'auto' || mode === 'ai'; this.ai = mode === 'ai'; if (this.ai) mode = 'auto'; this._s50 = this._s80 = 0; this._aiT = performance.now() - 10000; this._gd = null; this._gt = 0; this._lp = null; this.vox = new Set(); this.azb = new Uint16Array(36); this.vy = []; this.cov = 0; this.done = false; this.floorY = null; this.lastCov = 0; this.tags = [];
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true }); r.xr.enabled = true; r.setPixelRatio(devicePixelRatio); r.setSize(innerWidth, innerHeight); r.domElement.style.cssText = 'position:fixed;inset:0;z-index:40'; document.body.appendChild(r.domElement); this.r = r;
     const s = new THREE.Scene(); s.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2)); this.s = s; this.cam = new THREE.PerspectiveCamera();
     this.ret = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.065, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xe8b230 })); this.ret.matrixAutoUpdate = false; this.ret.visible = false; s.add(this.ret);
@@ -325,16 +325,17 @@ const AR = {
     else if (lowMiss) { dir = 'down'; txt = 'Baja la cámara hacia el zócalo'; }
     else { dir = 'down'; txt = 'Apunta al piso para cerrar la captura'; }
     if (Math.abs(this.speed || 0) > 1.2) { dir = 'slow'; txt = 'Más despacio'; }
-    this.guide(dir, txt, pct);
+    this.guide(dir, txt, pct, { cobertura_pct: pct, direccion_a_cubrir: dir, sectores_360_cubiertos: az + '/36', bandas_altura_cubiertas: hs + '/8', faltan_zonas_bajas: lowMiss > 0, faltan_zonas_altas: hiMiss > 0, piso_detectado: this.floorY != null, puntos: this.added, velocidad_m_s: +(this.speed || 0).toFixed(2) });
     this.radar(cp, m);
     if (pct >= 95 && !this.done) { this.done = true; if (navigator.vibrate) navigator.vibrate([60, 60, 120]); window.SFX && SFX.play('shimmer'); toast('¡Captura completa! Reconstruyendo…', 2500); this.info(); setTimeout(() => { if (this.session && this.done) this.session.end(); }, 2200); }
     if (Math.floor(pct / 25) > Math.floor(this.lastCov / 25)) { if (navigator.vibrate) navigator.vibrate(25); window.SFX && SFX.play('tick'); } this.lastCov = pct;
     this.info();
   },
-  guide(dir, txt, pct) {
+  guide(dir, txt, pct, st) {
     $('#autoHint').textContent = txt; const ar = $('#aiArrow'); ar.dataset.d = dir;
     if (!this.ai) return; const now = performance.now();
     if (dir !== this._gd || now - this._gt > 6000) { if (now - (this._gt || 0) > 2600 || dir === 'ok') { this._gd = dir; this._gt = now; this.say(dir === 'ok' ? 'Captura completa. Estoy reconstruyendo el modelo.' : txt); window.SFX && SFX.play(dir === 'ok' ? 'shimmer' : 'tick'); if (navigator.vibrate) navigator.vibrate(dir === 'left' ? [30, 60, 30] : dir === 'right' ? [60] : 15); } }
+    if (window.AIB && st && dir !== 'ok' && now - (this._aiT || 0) > 16000) { this._aiT = now; AIB.coach(st).then(t => { if (t && this.session && !this.done && this.ai) { $('#aiSay').textContent = t; $('#aiSay').classList.add('on'); this.say(t); this._gt = performance.now(); clearTimeout(this._aiH); this._aiH = setTimeout(() => $('#aiSay').classList.remove('on'), 7000); } }); }
     if (pct >= 50 && !this._s50) { this._s50 = 1; this.say('Vas por la mitad. Excelente.'); } if (pct >= 80 && !this._s80) { this._s80 = 1; this.say('Ochenta por ciento. Casi terminamos.'); }
   },
   say(t) { try { if (!window.speechSynthesis || !(window.SFX ? SFX.on : true)) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'es-ES'; const v = speechSynthesis.getVoices().find(v => /^es/i.test(v.lang)); if (v) u.voice = v; u.rate = 1.05; speechSynthesis.speak(u); } catch (e) { } },
@@ -452,14 +453,42 @@ async function autoProcess(floorY, tags, sesPos, ai) {
     await mark(3); await save(); await mark(4, 300);
     ov.classList.remove('on'); viewer._fitted = false; show('3d'); scrollTo({ top: 0, behavior: 'smooth' }); viewer.cinematic && viewer.cinematic();
     const r = P.rooms[P.rooms.length - 1];
-    if (res && r && r.auto) { window.SFX && SFX.play('shimmer'); resultCard(r); if (ai) { if (window.MOD) MOD.fromRooms([r]); AR.say(`Listo. ${C.fmt(C.polyArea(r.pts), 1)} metros cuadrados, ${r.pts.length} muros y ${C.fmt(r.h)} metros de alto. El modelo está listo para exportar.`); } } else toast('No se detectaron suficientes muros: repite moviendo el teléfono más despacio', 5000);
+    if (res && r && r.auto) { window.SFX && SFX.play('shimmer'); resultCard(r); if (ai) { if (window.MOD) MOD.fromRooms([r]); setTimeout(() => aiReport(r), 3500); AR.say(`Listo. ${C.fmt(C.polyArea(r.pts), 1)} metros cuadrados, ${r.pts.length} muros y ${C.fmt(r.h)} metros de alto. El modelo está listo para exportar.`); } } else toast('No se detectaron suficientes muros: repite moviendo el teléfono más despacio', 5000);
   } catch (e) { ov.classList.remove('on'); toast('Error en la reconstrucción: ' + e.message, 5000); }
 }
 function resultCard(r) {
-  const el = $('#autoRes'); el.innerHTML = `<div class="rh"><b>Reconstrucción lista</b><button class="x" id="arX">✕</button></div><div class="rk"><div><span>${C.fmt(C.polyArea(r.pts), 1)}</span>m² área</div><div><span>${C.fmt(C.polyPerimeter(r.pts), 1)}</span>m perímetro</div><div><span>${C.fmt(r.h)}</span>m alto</div><div><span>${r.pts.length}</span>muros</div></div><div class="row"><button class="btn sm" id="arPlan">Ver plano</button><button class="btn sec sm" data-go2="pdf">PDF</button><button class="btn sec sm" data-go2="dxf">DXF</button></div>`;
+  const el = $('#autoRes'); el.innerHTML = `<div class="rh"><b>Reconstrucción lista</b><button class="x" id="arX">✕</button></div><div class="rk"><div><span>${C.fmt(C.polyArea(r.pts), 1)}</span>m² área</div><div><span>${C.fmt(C.polyPerimeter(r.pts), 1)}</span>m perímetro</div><div><span>${C.fmt(r.h)}</span>m alto</div><div><span>${r.pts.length}</span>muros</div></div><div class="row"><button class="btn sm" id="arPlan">Ver plano</button><button class="btn sm ai" id="arRep">🤖 Informe IA</button><button class="btn sec sm" data-go2="pdf">PDF</button><button class="btn sec sm" data-go2="dxf">DXF</button></div>`;
   el.classList.add('on'); $('#arX').onclick = () => el.classList.remove('on'); $('#arPlan').onclick = () => { el.classList.remove('on'); show('plan'); };
   el.querySelectorAll('[data-go2]').forEach(b => b.onclick = () => document.querySelector(`[data-x="${b.dataset.go2}"]`).click());
+  $('#arRep').onclick = () => aiReport(r);
 }
+// ---------------- IA 3D: informe, chat y configuración ----------------
+const roomCtx = r => ({ name: r.name, h: r.h, area: C.polyArea(r.pts), per: C.polyPerimeter(r.pts), walls: C.walls(r).map(w => w.len) });
+const projCtx = () => ({ name: P.name, rooms: P.rooms.map(roomCtx), measures: P.measures.map(m => ({ etiqueta: m.label, m: +C.dist3(m.a, m.b).toFixed(3) })), pts: P.cloud.pos.length / 3 | 0, solids: (P.solids || []).map(s => s.name) });
+const esc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const md = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/^#+\s*(.+)$/gm, '<b>$1</b>').replace(/^\s*[-*•]\s+/gm, '• ').replace(/\n/g, '<br>');
+async function aiReport(r) {
+  openChat(); const id = addMsg('ai', '<i class="dots"><b></b><b></b><b></b></i> Analizando ' + esc(r.name) + '…');
+  try { const t = await AIB.report(roomCtx(r)); setMsg(id, md(t)); chatHist.push({ role: 'assistant', content: t }); } catch (e) { setMsg(id, 'No pude conectar con la IA (' + esc(e.message) + '). Revisa tu conexión o configura una clave gratuita en ⚙️.'); }
+}
+let chatHist = [];
+function addMsg(who, html) { const d = document.createElement('div'); d.className = 'cm ' + who; d.innerHTML = html; d.id = 'm' + Date.now() + Math.random().toString(36).slice(2, 6); $('#aiLog').appendChild(d); $('#aiLog').scrollTop = 1e9; return d.id; }
+function setMsg(id, html) { const d = document.getElementById(id); if (d) { d.innerHTML = html; $('#aiLog').scrollTop = 1e9; } }
+function openChat() { $('#aiChat').classList.add('on'); $('#aiEng').textContent = window.AIB ? AIB.engine : 'cargando…'; if (!$('#aiLog').children.length) addMsg('ai', '¡Hola! Soy <b>IA 3D</b>. Conozco tu proyecto: áreas, muros, alturas y medidas. Pregúntame por ejemplo:<br>• ¿Cuánta pintura necesito para los muros?<br>• ¿Cuántas cajas de cerámica de 60×60 para el piso?<br>• Resume el levantamiento para el cliente.'); }
+async function sendChat(q) {
+  q = (q || $('#aiIn').value).trim(); if (!q) return; $('#aiIn').value = ''; addMsg('me', esc(q)); const id = addMsg('ai', '<i class="dots"><b></b><b></b><b></b></i>');
+  if (!window.AIB) { setMsg(id, 'La IA aún se está cargando, intenta de nuevo.'); return; }
+  try { const t = await AIB.ask(q, projCtx(), chatHist); chatHist.push({ role: 'user', content: q }, { role: 'assistant', content: t }); setMsg(id, md(t)); $('#aiEng').textContent = AIB.engine; window.SFX && SFX.play('ok'); }
+  catch (e) { setMsg(id, 'Sin respuesta de la IA (' + esc(e.message) + '). Si estás sin internet, las herramientas de medición siguen funcionando.'); }
+}
+$('#aiSend').onclick = () => sendChat(); $('#aiIn').onkeydown = e => { if (e.key === 'Enter') sendChat(); };
+$$('[data-aiq]').forEach(b => b.onclick = () => sendChat(b.dataset.aiq));
+$$('[data-chat]').forEach(b => b.onclick = () => { $('#drawer') && $('#drawer').classList.remove('on'); $('#scrim') && $('#scrim').classList.remove('on'); openChat(); });
+$('#aiClose').onclick = () => $('#aiChat').classList.remove('on');
+$('#aiCfgBtn').onclick = () => $('#aiCfg').classList.toggle('on');
+try { $('#aiProv').value = localStorage.cam3dAIProv || 'auto'; $('#aiGem').value = localStorage.cam3dGeminiKey || ''; $('#aiPk').value = localStorage.cam3dPollKey || ''; } catch (e) { }
+$('#aiSave').onclick = async () => { try { localStorage.cam3dAIProv = $('#aiProv').value; localStorage.cam3dGeminiKey = $('#aiGem').value.trim(); localStorage.cam3dPollKey = $('#aiPk').value.trim(); } catch (e) { } AIB.last = null; $('#aiTest').textContent = 'Probando…'; try { const t = await AIB.test(); $('#aiTest').textContent = `✅ ${t.engine} respondió en ${(t.ms / 1000).toFixed(1)} s`; $('#aiEng').textContent = t.engine; } catch (e) { $('#aiTest').textContent = '⚠️ ' + e.message; } };
+import('./ai.js').then(m => { window.AIB = m.default; }).catch(() => { });
 $$('[data-ar]').forEach(t => t.onclick = () => AR.start(t.dataset.ar));
 
 // ---------------- arranque ----------------

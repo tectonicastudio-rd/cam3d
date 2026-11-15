@@ -239,16 +239,22 @@ export function autoRoom(pos, opt = {}) {
   for (let i = 0; i < A.length; i += 2) { U.push(A[i] * c + A[i + 1] * s); V.push(-A[i] * s + A[i + 1] * c); }
   const u0 = pct(U, 0.005) - 0.3, u1 = pct(U, 0.995) + 0.3, v0 = pct(V, 0.005) - 0.3, v1 = pct(V, 0.995) + 0.3;
   const gw = Math.min(600, Math.ceil((u1 - u0) / cell) + 1), gh = Math.min(600, Math.ceil((v1 - v0) / cell) + 1);
-  let G = new Uint8Array(gw * gh); const cnt = new Uint16Array(gw * gh);
+  const cnt = new Uint16Array(gw * gh);
   for (let i = 0; i < U.length; i++) { const x = Math.floor((U[i] - u0) / cell), y = Math.floor((V[i] - v0) / cell); if (x >= 0 && y >= 0 && x < gw && y < gh) cnt[y * gw + x]++; }
-  for (let k = 0; k < G.length; k++) G[k] = cnt[k] > 0 ? 1 : 0;
-  const morph = (g, r, dil) => { const o = new Uint8Array(g.length); for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) { let v = dil ? 0 : 1; for (let dy = -r; dy <= r && (dil ? !v : v); dy++) for (let dx = -r; dx <= r; dx++) { const xx = x + dx, yy = y + dy; const val = xx >= 0 && yy >= 0 && xx < gw && yy < gh ? g[yy * gw + xx] : 0; if (dil && val) { v = 1; break; } if (!dil && !val) { v = 0; break; } } o[y * gw + x] = v; } return o; };
-  G = morph(G, 3, true);
+  const G0 = new Uint8Array(gw * gh); for (let k = 0; k < G0.length; k++) G0[k] = cnt[k] > 0 ? 1 : 0;
+  const morph = (g, r, dil) => { // cuadrado separable con sumas acumuladas: O(n)
+    const pass = (src, horiz) => { const o = new Uint8Array(src.length), n = horiz ? gw : gh, m = horiz ? gh : gw, ps = new Int32Array(n + 1);
+      for (let j = 0; j < m; j++) { for (let i = 0; i < n; i++) ps[i + 1] = ps[i] + src[horiz ? j * gw + i : i * gw + j];
+        for (let i = 0; i < n; i++) { const a = i - r, b = i + r, s2 = ps[Math.min(n, b + 1)] - ps[Math.max(0, a)]; const full = (Math.min(n - 1, b) - Math.max(0, a) + 1) === 2 * r + 1; o[horiz ? j * gw + i : i * gw + j] = dil ? (s2 > 0 ? 1 : 0) : (full && s2 === 2 * r + 1 ? 1 : 0); } }
+      return o; };
+    return pass(pass(g, true), false); };
+  const solve = (R, minWall) => {
+  let G = morph(G0, R, true);
   // rellenar huecos interiores
   const out = new Uint8Array(G.length), q = []; for (let x = 0; x < gw; x++) { q.push(x, (gh - 1) * gw + x); } for (let y = 0; y < gh; y++) { q.push(y * gw, y * gw + gw - 1); }
   while (q.length) { const k = q.pop(); if (out[k] || G[k]) continue; out[k] = 1; const x = k % gw, y = k / gw | 0; if (x > 0) q.push(k - 1); if (x < gw - 1) q.push(k + 1); if (y > 0) q.push(k - gw); if (y < gh - 1) q.push(k + gw); }
   for (let k = 0; k < G.length; k++) G[k] = out[k] ? 0 : 1;
-  G = morph(G, 3, false);
+  G = morph(G, R, false);
   // componente principal
   const lab = new Int32Array(G.length).fill(-1); let bestC = -1, bestN = 0;
   for (let k0 = 0; k0 < G.length; k0++) { if (!G[k0] || lab[k0] >= 0) continue; let m = 0; const st = [k0]; lab[k0] = k0; while (st.length) { const k = st.pop(); m++; const x = k % gw, y = k / gw | 0; for (const nk of [x > 0 ? k - 1 : -1, x < gw - 1 ? k + 1 : -1, y > 0 ? k - gw : -1, y < gh - 1 ? k + gw : -1]) if (nk >= 0 && G[nk] && lab[nk] < 0) { lab[nk] = k0; st.push(nk); } } if (m > bestN) { bestN = m; bestC = k0; } }
@@ -264,7 +270,7 @@ export function autoRoom(pos, opt = {}) {
   let ed = P.map((p, i) => { const b = P[(i + 1) % P.length]; return p[1] === b[1] ? { t: 'H', c: p[1] } : { t: 'V', c: p[0] }; });
   const verts = e => e.map((a, i) => { const b = e[(i + 1) % e.length]; return a.t === 'H' ? [b.c, a.c] : [a.c, b.c]; });
   const lens = e => { const v = verts(e); return e.map((_, i) => { const a = v[(i - 1 + v.length) % v.length], b = v[i]; return Math.hypot(a[0] - b[0], a[1] - b[1]); }); };
-  const minLen = (opt.minWall || 0.22) / cell;
+  const minLen = minWall / cell;
   for (let it = 0; it < 500 && ed.length > 4; it++) {
     const L = lens(ed); let k = -1, m = Infinity; L.forEach((l, i) => { if (l < m) { m = l; k = i; } }); if (m >= minLen) break;
     const N = ed.length, ip = (k - 1 + N) % N, inx = (k + 1) % N, a = ed[ip], b = ed[inx], la = Math.max(1e-6, L[ip]), lb = Math.max(1e-6, L[inx]);
@@ -275,6 +281,15 @@ export function autoRoom(pos, opt = {}) {
   }
   { const v = verts(ed), d = (opt.inset != null ? opt.inset : 0.045) / cell; ed = ed.map((e, i) => { const a = v[(i - 1 + v.length) % v.length], b = v[i]; if (e.t === 'H') return { t: 'H', c: e.c + (b[0] > a[0] ? d : -d) }; return { t: 'V', c: e.c + (b[1] > a[1] ? -d : d) }; }); }
   const pts = verts(ed).map(([gx, gy]) => { const uu = gx * cell + u0, vv = gy * cell + v0; return { x: +(uu * c - vv * s).toFixed(3), z: +(uu * s + vv * c).toFixed(3) }; });
+    return { pts, n: pts.length, area: polyArea(pts) };
+  };
+  // adaptativo: con pocos puntos (sin sensor de profundidad) cierra huecos más grandes hasta obtener un contorno limpio
+  let bestR = null;
+  for (const [R, mw] of [[3, opt.minWall || 0.22], [5, 0.25], [7, 0.3], [10, 0.35], [14, 0.4]]) {
+    const r = solve(R, mw); if (!r) continue;     if (!bestR || r.n < bestR.n || (r.n === bestR.n && r.area > bestR.area)) bestR = r; if (r.n <= 8) { bestR = r; break; }
+  }
+  if (!bestR) return null; const pts = bestR.pts;
+
   return { pts, y: floorY, h: +h.toFixed(2), ceilingSeen, angle: best };
 }
 
