@@ -398,6 +398,29 @@ $('#arShot').onclick = e => { e.stopPropagation(); AR.capture(); };
 $('#arUndo').onclick = e => { e.stopPropagation(); AR.undo(); };
 $('#arDone').onclick = $('#arClose').onclick = e => { e.stopPropagation(); if (AR.session) AR.session.end(); };
 $('#ar').addEventListener('beforexrselect', e => e.preventDefault());
+// ---------------- permisos de cámara ----------------
+(function permCard() {
+  const ar = $('#arCard'); if (!ar) return;
+  const c = document.createElement('div'); c.className = 'card'; c.id = 'permCard';
+  c.innerHTML = '<div class="row" style="justify-content:space-between;align-items:center"><b>Permisos de la cámara</b><button class="btn sm" id="permBtn">📷 Activar cámara</button></div><div id="permList" style="margin-top:8px;font:600 13px/1.7 system-ui"></div><div id="permHelp" class="mut" style="display:none;font-size:12.5px;line-height:1.5;margin-top:6px"></div>';
+  ar.after(c);
+  const row = (ok, t) => `<div>${ok === true ? '✅' : ok === false ? '❌' : '⏳'} ${t}</div>`;
+  async function paint() {
+    let cam = null; try { const q = await navigator.permissions.query({ name: 'camera' }); cam = q.state === 'granted' ? true : q.state === 'denied' ? false : null; q.onchange = paint; } catch (e) { }
+    const xr = !!navigator.xr && await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+    $('#permList').innerHTML = row(cam, 'Cámara ' + (cam === true ? 'permitida' : cam === false ? 'bloqueada' : 'pendiente: toca “Activar cámara”')) + row(xr, 'Realidad aumentada (ARCore) ' + (xr ? 'disponible' : 'no disponible')) + row(window.isSecureContext, 'Conexión segura');
+    $('#permBtn').style.display = cam === true ? 'none' : '';
+    const help = []; if (cam === false) help.push('<b>Cámara bloqueada:</b> Ajustes del teléfono › Aplicaciones › <b>Chrome</b> › Permisos › Cámara › Permitir. Luego en Chrome › ⋮ › Configuración › Configuración de sitios › Cámara › permite <b>tectonicastudio-rd.github.io</b>.'); if (!xr) help.push('<b>ARCore:</b> instala o actualiza “Servicios de Google Play para RA” desde Play Store y reinicia CAM3D.');
+    $('#permHelp').innerHTML = help.join('<br><br>'); $('#permHelp').style.display = help.length ? '' : 'none';
+    if (xr && !AR.supported) AR.check && AR.check();
+  }
+  $('#permBtn').onclick = async () => {
+    try { const st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); st.getTracks().forEach(t => t.stop()); toast('✅ Cámara activada. Ya puedes usar IA 3D y Automático'); window.SFX && SFX.play('ok'); }
+    catch (e) { toast('No se concedió el permiso de cámara. Sigue los pasos que aparecen en la tarjeta.', 5000); }
+    paint();
+  };
+  paint();
+})();
 $('#surf').onclick = e => { e.stopPropagation(); AR.tagSurface(); };
 const startAuto = () => AR.start('auto');
 $('#btnAuto').onclick = startAuto; window.CAM3D_startAuto = startAuto;
