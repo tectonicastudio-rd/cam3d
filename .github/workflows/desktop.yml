@@ -1,0 +1,73 @@
+name: Instaladores Windows y Mac CAM3D
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['desktop/**', 'app.js', 'index.html', 'core.js', 'modeler.js', 'ai.js', '.github/workflows/desktop.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Armar app
+        run: |
+          set -e
+          W=desktop/www
+          mkdir -p $W/lib/three/build $W/lib/three/examples/jsm $W/lib/three-mesh-bvh $W/lib/three-bvh-csg desktop/build
+          cp index.html app.js core.js modeler.js ai.js native.js logo.webp emblem-256.png icon-192.png icon-512.png icon-maskable-512.png manifest.webmanifest $W/
+          cp icon-512.png desktop/build/icon.png
+          mkdir -p npmtmp && cd npmtmp && npm pack three@0.160.0 three-mesh-bvh@0.7.8 three-bvh-csg@0.0.16 >/dev/null
+          for f in *.tgz; do mkdir -p "${f%.tgz}" && tar xzf "$f" -C "${f%.tgz}"; done
+          cd ..
+          cp npmtmp/three-0.160.0/package/build/three.module.js $W/lib/three/build/
+          for d in controls exporters loaders utils; do cp -r npmtmp/three-0.160.0/package/examples/jsm/$d $W/lib/three/examples/jsm/; done
+          cp -r npmtmp/three-mesh-bvh-0.7.8/package/src $W/lib/three-mesh-bvh/
+          cp -r npmtmp/three-bvh-csg-0.0.16/package/src $W/lib/three-bvh-csg/
+          node desktop/fix-importmap.js $W/index.html
+          cd desktop && npm install --no-audit --no-fund
+      - name: Prueba de arranque
+        working-directory: desktop
+        env:
+          CAM3D_SMOKE: '1'
+        run: npx electron .
+      - name: Crear instalador
+        working-directory: desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder ${{ matrix.os == 'windows-latest' && '--win' || '--mac' }} --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cam3d-${{ matrix.os }}
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/*.dmg
+          if-no-files-found: error
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Publicar
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ls -la out
+          gh release delete v3.0-escritorio -y --cleanup-tag || true
+          gh release create v3.0-escritorio out/* --title "CAM3D v3.0 · Windows y Mac" --notes "Instaladores de CAM3D v3.0 para Windows (.exe) y Mac (.dmg). Tectónica Studio. Todos los derechos reservados."
