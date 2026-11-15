@@ -44,9 +44,9 @@
 | 🪟 Windows 10/11 | [CAM3D_TectonicaStudio_V3.0_Windows_Instalador.exe](https://github.com/tectonicastudio-rd/cam3d/releases/download/v3.0-escritorio/CAM3D_TectonicaStudio_V3.0_Windows_Instalador.exe) | Modelado, planos y exportación. |
 | 🍎 macOS (Intel y Apple Silicon) | [CAM3D_TectonicaStudio_V3.0_Mac_Instalador.dmg](https://github.com/tectonicastudio-rd/cam3d/releases/download/v3.0-escritorio/CAM3D_TectonicaStudio_V3.0_Mac_Instalador.dmg) | Modelado, planos y exportación. |
 | 🌐 Navegador | [tectonicastudio-rd.github.io/cam3d](https://tectonicastudio-rd.github.io/cam3d/) | Versión web. |
-| 🍏 iPhone / iPad | En preparación | Requiere publicación en App Store. |
+| 🍏 iPhone (iOS 15+) | [CAM3D_TectonicaStudio_V3.0_iPhone.ipa](https://github.com/tectonicastudio-rd/cam3d/releases/download/v3.0-iphone/CAM3D_TectonicaStudio_V3.0_iPhone.ipa) | App local con cámara AR (ARKit). Se instala desde la PC con Sideloadly — ver [instrucciones](https://github.com/tectonicastudio-rd/cam3d/releases/download/v3.0-iphone/INSTALAR_EN_IPHONE.txt). |
 
-> La captura con cámara AR se hace en Android. En Windows y Mac abre el **Respaldo .cam3d** para modelar, acotar y exportar.
+> La captura con cámara AR se hace en Android o iPhone. En Windows y Mac abre el **Respaldo .cam3d** para modelar, acotar y exportar.
 
 ## Cómo se usa
 
@@ -88,3 +88,4 @@ Consulta el [CHANGELOG](CHANGELOG.md).
 ---
 
 <p align="center"><img src="https://github.com/tectonicastudio-rd.png" width="96" alt="Tectónica Studio"><br><b>Tectónica Studio</b><br>© 2026 Tectónica Studio · Todos los derechos reservados</p>
+
