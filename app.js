@@ -8,7 +8,8 @@ import * as C from './core.js';
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const toast = (t, ms = 2600) => { const e = $('#toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(e._t); e._t = setTimeout(() => e.style.display = 'none', ms); };
 function dialog(html, ok = 'Aceptar') { return new Promise(res => { $('#dlgBody').innerHTML = html; $('#dlgOk').textContent = ok; $('#dlg').classList.add('on'); $('#dlgOk').onclick = () => { $('#dlg').classList.remove('on'); res(true); }; $('#dlgNo').onclick = () => { $('#dlg').classList.remove('on'); res(false); }; }); }
-function download(name, data, type = 'application/octet-stream') { const b = data instanceof Blob ? data : new Blob([data], { type }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); }
+function download(name, data, type = 'application/octet-stream') { const b = data instanceof Blob ? data : new Blob([data], { type });
+  if (window.CAM3D_NATIVE) { const fr = new FileReader(); fr.onload = () => { try { CAM3DNative.saveFile(name, b.type || type, String(fr.result).split(',')[1] || ''); } catch (e) { toast('No se pudo guardar: ' + e.message); } }; fr.readAsDataURL(b); return; } const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); }
 const slug = s => (s || 'proyecto').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]+/g, '_');
 
 // ---------------- almacenamiento (IndexedDB) ----------------
@@ -183,11 +184,13 @@ const AR = {
   supported: false, depth: false, mode: 'plan', session: null,
   async check() {
     const st = $('#arStatus');
+    if (window.CAM3D_NATIVE) { this.supported = true; st.innerHTML = '✅ Cámara AR nativa (ARCore). Si falta, la app instala <b>Servicios de Google Play para RA</b> automáticamente.'; return; }
     if (!navigator.xr) { st.innerHTML = '⚠️ Este navegador no tiene realidad aumentada. En Android usa <b>Chrome</b> actualizado con <b>Servicios de Google Play para RA</b>. Mientras tanto puedes importar escaneos y crear espacios por medidas.'; return; }
     this.supported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
     st.innerHTML = this.supported ? '✅ Realidad aumentada disponible. El escaneo 3D usa el sensor de profundidad si tu teléfono lo tiene (ARCore Depth).' : '⚠️ Tu teléfono no reporta ARCore. Instala o actualiza <b>Servicios de Google Play para RA</b> desde Play Store.';
   },
   async start(mode) {
+    if (window.CAM3D_NATIVE) { window.SFX && SFX.play('tick'); CAM3DNative.startAR(mode); return; }
     if (!this.supported) await this.check();
     if (!this.supported) { toast('Realidad aumentada no disponible: instala o actualiza Servicios de Google Play para RA', 5000); return; }
     if (!(await ensureCamera())) return;
@@ -400,7 +403,7 @@ $('#arUndo').onclick = e => { e.stopPropagation(); AR.undo(); };
 $('#arDone').onclick = $('#arClose').onclick = e => { e.stopPropagation(); if (AR.session) AR.session.end(); };
 $('#ar').addEventListener('beforexrselect', e => e.preventDefault());
 // ---------------- si la AR no arranca dentro de la app: abrirla en Chrome ----------------
-const IN_APP = (() => { try { if (document.referrer.startsWith('android-app://')) sessionStorage.cam3dTWA = '1'; return sessionStorage.cam3dTWA === '1' || matchMedia('(display-mode: standalone)').matches; } catch (e) { return false; } })();
+const IN_APP = (() => { if (window.CAM3D_NATIVE) return false; try { if (document.referrer.startsWith('android-app://')) sessionStorage.cam3dTWA = '1'; return sessionStorage.cam3dTWA === '1' || matchMedia('(display-mode: standalone)').matches; } catch (e) { return false; } })();
 async function arFailed(mode, err) {
   const ua = navigator.userAgent, and = (ua.match(/Android [\d.]+/) || ['Android ?'])[0], chr = (ua.match(/Chrome\/([\d]+)/) || ['', '?'])[1];
   const info = `<p class="mut" style="font-size:12px;margin:8px 0 0">${and} · Chrome ${chr} · ${IN_APP ? 'app instalada' : 'navegador'} · ${err ? err.name : ''}</p>`;
@@ -415,6 +418,7 @@ async function arFailed(mode, err) {
 const CAM_STEPS = '<ol style="margin:8px 0 0;padding-left:20px;line-height:1.6;font-size:14px"><li>Abre <b>Ajustes</b> del teléfono › <b>Aplicaciones</b> › <b>Chrome</b> › <b>Permisos</b> › <b>Cámara</b> › <b>Permitir</b>.</li><li>Abre <b>Chrome</b> › ⋮ › <b>Configuración</b> › <b>Configuración de sitios</b> › <b>Cámara</b> y permite <b>tectonicastudio-rd.github.io</b>. Revisa también <b>Realidad aumentada</b>.</li><li>Vuelve a CAM3D y toca <b>Reintentar</b>.</li></ol>';
 async function camState() { try { return (await navigator.permissions.query({ name: 'camera' })).state; } catch (e) { return 'unknown'; } }
 async function ensureCamera() {
+  if (window.CAM3D_NATIVE) return true;
   let st = await camState(); let ok = false; try { ok = localStorage.cam3dCamOK === '1'; } catch (e) { }
   if (st === 'granted' || (st === 'unknown' && ok)) return true;
   if (st === 'denied') return camBlocked();
@@ -601,10 +605,33 @@ $$('[data-ar]').forEach(t => t.onclick = () => AR.start(t.dataset.ar));
   try { await DB.open(); const all = await DB.all(); const last = localStorage.getItem('cam3d_last'); P = all.find(p => p.id === last) || all[0]; } catch (e) { }
   if (!P) { P = newProj(); await save(); }
   await loadModel().catch(() => { }); refresh(); AR.check();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
+  if (!window.CAM3D_NATIVE && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
 })();
 
 // abrir captura pedida desde la app (?ar=modo)
 (() => { const m = new URLSearchParams(location.search).get('ar'); if (!m || !['plan', 'measure', 'cloud', 'auto', 'ai'].includes(m)) return;
   const go = async () => { if (await dialog('<h2 style="margin:0 0 6px">📷 Cámara lista en Chrome</h2><p class="mut" style="margin:0">Toca <b>Iniciar</b> para abrir la captura. Al terminar, vuelve a la app CAM3D: el resultado estará en tu proyecto.</p>', 'Iniciar')) AR.start(m); };
   const wait = () => { if (document.getElementById('intro')) { setTimeout(wait, 400); return; } setTimeout(go, 300); }; wait(); })();
+
+// ---------------- app nativa (APK local): resultado de la cámara ARCore ----------------
+window.CAM3DNativeAR = async () => {
+  let d = null; try { d = JSON.parse(CAM3DNative.takeResult() || 'null'); } catch (e) { d = null; }
+  if (!d) return; if (d.error) { toast(d.error, 6000); return; }
+  const tags = d.tags || [], ce = tags.filter(t => t.k === 'Techo').map(t => t.y);
+  (d.measures || []).forEach(m => P.measures.push({ a: m.a, b: m.b, label: 'D' + (P.measures.length + 1) }));
+  (d.rooms || []).forEach(r => { const y = d.floorY != null ? d.floorY : r.y; const h = ce.length ? Math.max(2.2, Math.min(4.5, Math.max(...ce) - y)) : 2.6; P.rooms.push({ name: 'Espacio ' + (P.rooms.length + 1), h, y, pts: r.pts.map(p => ({ x: p.x, z: p.z })) }); });
+  const pos = d.cloud || [], col = d.col || [], n = pos.length / 3 | 0, auto = d.mode === 'auto' || d.mode === 'ai';
+  for (let i = 0; i < pos.length; i++) P.cloud.pos.push(pos[i]);
+  for (let i = 0; i < n * 3; i++) P.cloud.col.push(col[i] == null ? 200 : col[i]);
+  viewer._fitted = false; await save();
+  if (n) toast(`${n.toLocaleString('es')} puntos agregados al proyecto`);
+  if (d.measures && d.measures.length) toast(`${d.measures.length} medida(s) guardada(s)`);
+  if (auto) { await autoProcess(d.floorY != null ? d.floorY : null, tags, new Float32Array(pos), d.mode === 'ai'); return; }
+  if (d.rooms && d.rooms.length) show('plan'); else if (n || (d.measures && d.measures.length)) show('3d');
+};
+window.CAM3DBack = () => {
+  if ($('#dlg').classList.contains('on')) { $('#dlgNo').click(); return true; }
+  const op = [...document.querySelectorAll('#aiChat.on,#tut.on,#proc.on,#autoRes.on')]; if (op.length) { op.forEach(e => e.classList.remove('on')); return true; }
+  const c0 = document.querySelectorAll('.on').length; try { if (typeof closeAll === 'function') closeAll(); } catch (e) { } if (document.querySelectorAll('.on').length !== c0) return true;
+  if (!$('#v-home').classList.contains('on')) { show('home'); return true; } return false;
+};

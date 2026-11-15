@@ -1,0 +1,1675 @@
+=====FILE settings.gradle
+pluginManagement {
+    repositories { google(); mavenCentral(); gradlePluginPortal() }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories { google(); mavenCentral() }
+}
+rootProject.name = "CAM3D"
+include ':app'
+=====FILE build.gradle
+plugins {
+    id 'com.android.application' version '8.7.3' apply false
+}
+=====FILE gradle.properties
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+android.useAndroidX=true
+android.nonTransitiveRClass=true
+=====FILE app/build.gradle
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.tectonicastudio.cam3d'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.tectonicastudio.cam3d"
+        minSdk 24
+        targetSdk 35
+        versionCode 300
+        versionName "3.0"
+    }
+
+    signingConfigs {
+        debug {
+            // firma de PRUEBA (solo para el APK compilado en GitHub). La oficial se usa con Build › Generate Signed APK.
+            storeFile rootProject.file('ci/prueba.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+    implementation 'com.google.ar:core:1.44.0'
+}
+=====FILE app/src/main/AndroidManifest.xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
+    <uses-feature android:glEsVersion="0x00020000" android:required="true" />
+
+    <queries>
+        <intent><action android:name="android.speech.RecognitionService" /></intent>
+        <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
+        <package android:name="com.google.ar.core" />
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:hardwareAccelerated="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:label="CAM3D"
+        android:theme="@style/Theme.CAM3D">
+
+        <!-- ARCore opcional: la app abre aunque el teléfono no lo tenga; la captura AR lo instala si hace falta -->
+        <meta-data android:name="com.google.ar.core" android:value="optional" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode|smallestScreenSize"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ArCaptureActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/Theme.CAM3D.AR" />
+    </application>
+</manifest>
+=====FILE app/src/main/res/values/colors.xml
+<resources>
+    <color name="bg">#FF060B16</color>
+</resources>
+=====FILE app/src/main/res/values/themes.xml
+<resources>
+    <style name="Theme.CAM3D" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+        <item name="android:windowDisablePreview">false</item>
+    </style>
+    <style name="Theme.CAM3D.AR" parent="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>
+=====FILE app/src/main/res/values-v31/themes.xml
+<resources>
+    <!-- Android 12+: arranque sin ícono, solo el fondo oscuro del intro -->
+    <style name="Theme.CAM3D" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+        <item name="android:windowSplashScreenBackground">@color/bg</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_vacio</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/bg</item>
+        <item name="android:windowSplashScreenAnimationDuration">0</item>
+    </style>
+    <style name="Theme.CAM3D.AR" parent="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>
+=====FILE app/src/main/res/drawable/splash_vacio.xml
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#00000000" />
+    <size android:width="1dp" android:height="1dp" />
+</shape>
+=====FILE app/src/main/java/com/tectonicastudio/cam3d/MainActivity.java
+package com.tectonicastudio.cam3d;
+
+import android.Manifest;
+import android.app.Activity;
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
+import android.util.Base64;
+import android.webkit.JavascriptInterface;
+import android.webkit.PermissionRequest;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.Toast;
+
+import androidx.webkit.WebViewAssetLoader;
+
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Locale;
+
+/**
+ * CAM3D · Tectónica Studio
+ * La app vive en el teléfono: todos los archivos están dentro del APK (assets/www)
+ * y se sirven localmente, sin depender de internet ni del repositorio.
+ */
+public class MainActivity extends Activity {
+
+    static final String HOST = "appassets.androidplatform.net";
+    static final String HOME = "https://" + HOST + "/assets/www/index.html";
+    static final int REQ_AR = 11, REQ_FILE = 12, REQ_WEBPERM = 13, REQ_START = 14, REQ_MIC = 15;
+
+    WebView web;
+    WebViewAssetLoader loader;
+    ValueCallback<Uri[]> fileCb;
+    PermissionRequest pendingWebPerm;
+    SpeechRecognizer sr;
+    boolean srEnded = true;
+    TextToSpeech tts;
+    boolean ttsOk;
+
+    @Override
+    protected void onCreate(Bundle state) {
+        super.onCreate(state);
+        if ((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) WebView.setWebContentsDebuggingEnabled(true);
+
+        loader = new WebViewAssetLoader.Builder()
+                .setDomain(HOST)
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
+
+        web = new WebView(this);
+        web.setBackgroundColor(0xFF060B16);
+        setContentView(web);
+
+        WebSettings s = web.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setDatabaseEnabled(true);
+        s.setMediaPlaybackRequiresUserGesture(false);
+        s.setAllowFileAccess(false);
+        s.setAllowContentAccess(true);
+        s.setTextZoom(100);
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+
+        web.addJavascriptInterface(new Bridge(), "CAM3DNative");
+
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
+                return loader.shouldInterceptRequest(r.getUrl());
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+                Uri u = r.getUrl();
+                if (HOST.equals(u.getHost())) return false;
+                try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception e) { /* sin navegador */ }
+                return true;
+            }
+        });
+
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onPermissionRequest(final PermissionRequest req) {
+                runOnUiThread(() -> handleWebPermission(req));
+            }
+
+            @Override
+            public boolean onShowFileChooser(WebView w, ValueCallback<Uri[]> cb, FileChooserParams p) {
+                if (fileCb != null) fileCb.onReceiveValue(null);
+                fileCb = cb;
+                try {
+                    Intent i = p.createIntent();
+                    i.addCategory(Intent.CATEGORY_OPENABLE);
+                    if (p.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                    startActivityForResult(Intent.createChooser(i, "Elegir archivo"), REQ_FILE);
+                    return true;
+                } catch (Exception e) {
+                    fileCb = null;
+                    return false;
+                }
+            }
+        });
+
+        if (state != null) web.restoreState(state);
+        else web.loadUrl(HOME);
+
+        tts = new TextToSpeech(this, st -> {
+            ttsOk = st == TextToSpeech.SUCCESS;
+            if (ttsOk) {
+                int r = tts.setLanguage(new Locale("es", "ES"));
+                if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) tts.setLanguage(new Locale("es"));
+            }
+        });
+
+        // Permisos de la app: se piden una sola vez al primer arranque
+        ArrayList<String> need = new ArrayList<>();
+        if (!has(Manifest.permission.CAMERA)) need.add(Manifest.permission.CAMERA);
+        if (!has(Manifest.permission.RECORD_AUDIO)) need.add(Manifest.permission.RECORD_AUDIO);
+        if (!need.isEmpty() && state == null) requestPermissions(need.toArray(new String[0]), REQ_START);
+    }
+
+    boolean has(String p) {
+        return checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    void handleWebPermission(PermissionRequest req) {
+        ArrayList<String> need = new ArrayList<>();
+        for (String r : req.getResources()) {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r) && !has(Manifest.permission.CAMERA)) need.add(Manifest.permission.CAMERA);
+            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(r) && !has(Manifest.permission.RECORD_AUDIO)) need.add(Manifest.permission.RECORD_AUDIO);
+        }
+        if (need.isEmpty()) { grantAllowed(req); return; }
+        if (pendingWebPerm != null) pendingWebPerm.deny();
+        pendingWebPerm = req;
+        requestPermissions(need.toArray(new String[0]), REQ_WEBPERM);
+    }
+
+    void grantAllowed(PermissionRequest req) {
+        ArrayList<String> ok = new ArrayList<>();
+        for (String r : req.getResources()) {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r) && has(Manifest.permission.CAMERA)) ok.add(r);
+            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(r) && has(Manifest.permission.RECORD_AUDIO)) ok.add(r);
+        }
+        if (ok.isEmpty()) req.deny();
+        else req.grant(ok.toArray(new String[0]));
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
+        super.onRequestPermissionsResult(code, perms, res);
+        if (code == REQ_WEBPERM && pendingWebPerm != null) {
+            grantAllowed(pendingWebPerm);
+            pendingWebPerm = null;
+        }
+        if (code == REQ_MIC && !has(Manifest.permission.RECORD_AUDIO)) {
+            Toast.makeText(this, "Permite el micrófono para dictar (Ajustes › Apps › CAM3D › Permisos)", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req == REQ_FILE) {
+            if (fileCb == null) return;
+            Uri[] out = null;
+            if (res == RESULT_OK && data != null) {
+                if (data.getClipData() != null) {
+                    int n = data.getClipData().getItemCount();
+                    out = new Uri[n];
+                    for (int i = 0; i < n; i++) out[i] = data.getClipData().getItemAt(i).getUri();
+                } else if (data.getData() != null) {
+                    out = new Uri[]{data.getData()};
+                }
+            }
+            fileCb.onReceiveValue(out);
+            fileCb = null;
+        } else if (req == REQ_AR) {
+            web.evaluateJavascript("window.CAM3DNativeAR&&CAM3DNativeAR()", null);
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        web.evaluateJavascript("(window.CAM3DBack&&CAM3DBack())||false", v -> {
+            if (!"true".equals(v)) MainActivity.super.onBackPressed();
+        });
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        web.saveState(out);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        web.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        web.onResume();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (tts != null) tts.shutdown();
+        if (sr != null) sr.destroy();
+        web.destroy();
+        super.onDestroy();
+    }
+
+    void js(String code) {
+        runOnUiThread(() -> web.evaluateJavascript(code, null));
+    }
+
+    void speech(String type, String text, boolean fin) {
+        js("window.CAM3DSpeech&&CAM3DSpeech(" + JSONObject.quote(type) + "," + JSONObject.quote(text == null ? "" : text) + "," + fin + ")");
+    }
+
+    void speechEnd() {
+        if (srEnded) return;
+        srEnded = true;
+        speech("end", "", false);
+    }
+
+    void startListening(String lang, boolean partial) {
+        if (!has(Manifest.permission.RECORD_AUDIO)) {
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_MIC);
+            srEnded = false;
+            speech("error", "not-allowed", false);
+            speechEnd();
+            return;
+        }
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            Toast.makeText(this, "Este teléfono no tiene el servicio de dictado de Google. Instala o activa la app Google.", Toast.LENGTH_LONG).show();
+            srEnded = false;
+            speech("error", "service-not-allowed", false);
+            speechEnd();
+            return;
+        }
+        if (sr != null) sr.destroy();
+        sr = SpeechRecognizer.createSpeechRecognizer(this);
+        srEnded = false;
+        sr.setRecognitionListener(new RecognitionListener() {
+            @Override public void onReadyForSpeech(Bundle b) { speech("start", "", false); }
+            @Override public void onBeginningOfSpeech() { }
+            @Override public void onRmsChanged(float v) { }
+            @Override public void onBufferReceived(byte[] b) { }
+            @Override public void onEndOfSpeech() { }
+            @Override public void onEvent(int t, Bundle b) { }
+
+            @Override
+            public void onPartialResults(Bundle b) {
+                ArrayList<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if (r != null && !r.isEmpty()) speech("result", r.get(0), false);
+            }
+
+            @Override
+            public void onResults(Bundle b) {
+                ArrayList<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if (r != null && !r.isEmpty()) speech("result", r.get(0), true);
+                speechEnd();
+            }
+
+            @Override
+            public void onError(int e) {
+                String m;
+                switch (e) {
+                    case SpeechRecognizer.ERROR_NO_MATCH:
+                    case SpeechRecognizer.ERROR_SPEECH_TIMEOUT: m = "no-speech"; break;
+                    case SpeechRecognizer.ERROR_NETWORK:
+                    case SpeechRecognizer.ERROR_NETWORK_TIMEOUT: m = "network"; break;
+                    case SpeechRecognizer.ERROR_AUDIO: m = "audio-capture"; break;
+                    case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS: m = "not-allowed"; break;
+                    default: m = "aborted";
+                }
+                speech("error", m, false);
+                speechEnd();
+            }
+        });
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang);
+        i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, partial);
+        i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+        sr.startListening(i);
+    }
+
+    String saveToDownloads(String name, String mime, byte[] data) throws Exception {
+        if (mime == null || mime.isEmpty()) mime = "application/octet-stream";
+        if (Build.VERSION.SDK_INT >= 29) {
+            ContentResolver cr = getContentResolver();
+            ContentValues v = new ContentValues();
+            v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+            v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
+            v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/CAM3D");
+            Uri u = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+            if (u == null) throw new Exception("sin acceso a Descargas");
+            try (OutputStream o = cr.openOutputStream(u)) {
+                if (o == null) throw new Exception("sin acceso a Descargas");
+                o.write(data);
+            }
+            return "Descargas/CAM3D/" + name;
+        } else {
+            File dir = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "CAM3D");
+            if (!dir.exists() && !dir.mkdirs()) throw new Exception("no se pudo crear la carpeta");
+            File f = new File(dir, name);
+            try (FileOutputStream o = new FileOutputStream(f)) { o.write(data); }
+            return f.getAbsolutePath();
+        }
+    }
+
+    /** Funciones nativas disponibles para la página como window.CAM3DNative */
+    class Bridge {
+        @JavascriptInterface
+        public String version() { return "3.0"; }
+
+        @JavascriptInterface
+        public void startAR(String mode) {
+            runOnUiThread(() -> {
+                Intent i = new Intent(MainActivity.this, ArCaptureActivity.class);
+                i.putExtra("mode", mode);
+                startActivityForResult(i, REQ_AR);
+            });
+        }
+
+        @JavascriptInterface
+        public String takeResult() {
+            String r = ArCaptureActivity.RESULT;
+            ArCaptureActivity.RESULT = null;
+            return r;
+        }
+
+        @JavascriptInterface
+        public boolean saveFile(String name, String mime, String b64) {
+            try {
+                byte[] data = Base64.decode(b64, Base64.DEFAULT);
+                String where = saveToDownloads(name, mime, data);
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Guardado en " + where, Toast.LENGTH_LONG).show());
+                return true;
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "No se pudo guardar: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                return false;
+            }
+        }
+
+        @JavascriptInterface
+        public void listen(String lang, boolean partial) {
+            runOnUiThread(() -> startListening(lang, partial));
+        }
+
+        @JavascriptInterface
+        public void stopListen() {
+            runOnUiThread(() -> { if (sr != null) sr.stopListening(); });
+        }
+
+        @JavascriptInterface
+        public void speak(String text, double rate) {
+            if (!ttsOk) return;
+            tts.setSpeechRate((float) Math.max(0.5, Math.min(2.0, rate)));
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "cam3d");
+        }
+
+        @JavascriptInterface
+        public void stopSpeak() {
+            if (ttsOk) tts.stop();
+        }
+
+        @JavascriptInterface
+        public boolean hasCamera() { return has(Manifest.permission.CAMERA); }
+    }
+}
+=====FILE app/src/main/java/com/tectonicastudio/cam3d/BackgroundRenderer.java
+package com.tectonicastudio.cam3d;
+
+import android.opengl.GLES11Ext;
+import android.opengl.GLES20;
+
+import com.google.ar.core.Coordinates2d;
+import com.google.ar.core.Frame;
+
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
+
+/** Dibuja la imagen de la cámara de ARCore como fondo de pantalla. */
+class BackgroundRenderer {
+    int tex = -1;
+    private int prog, aPos, aTex;
+    private FloatBuffer quad, quadTex;
+
+    private static final float[] QUAD = {-1f, -1f, 1f, -1f, -1f, 1f, 1f, 1f};
+
+    private static final String VS =
+            "attribute vec4 a_Position;\n" +
+            "attribute vec2 a_TexCoord;\n" +
+            "varying vec2 v_TexCoord;\n" +
+            "void main(){ gl_Position = a_Position; v_TexCoord = a_TexCoord; }";
+
+    private static final String FS =
+            "#extension GL_OES_EGL_image_external : require\n" +
+            "precision mediump float;\n" +
+            "varying vec2 v_TexCoord;\n" +
+            "uniform samplerExternalOES sTexture;\n" +
+            "void main(){ gl_FragColor = texture2D(sTexture, v_TexCoord); }";
+
+    void create() {
+        int[] t = new int[1];
+        GLES20.glGenTextures(1, t, 0);
+        tex = t[0];
+        int target = GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
+        GLES20.glBindTexture(target, tex);
+        GLES20.glTexParameteri(target, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameteri(target, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameteri(target, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+        GLES20.glTexParameteri(target, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+
+        quad = ByteBuffer.allocateDirect(QUAD.length * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
+        quad.put(QUAD);
+        quad.position(0);
+        quadTex = ByteBuffer.allocateDirect(QUAD.length * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
+
+        int vs = shader(GLES20.GL_VERTEX_SHADER, VS), fs = shader(GLES20.GL_FRAGMENT_SHADER, FS);
+        prog = GLES20.glCreateProgram();
+        GLES20.glAttachShader(prog, vs);
+        GLES20.glAttachShader(prog, fs);
+        GLES20.glLinkProgram(prog);
+        aPos = GLES20.glGetAttribLocation(prog, "a_Position");
+        aTex = GLES20.glGetAttribLocation(prog, "a_TexCoord");
+    }
+
+    private static int shader(int type, String src) {
+        int s = GLES20.glCreateShader(type);
+        GLES20.glShaderSource(s, src);
+        GLES20.glCompileShader(s);
+        return s;
+    }
+
+    void draw(Frame frame) {
+        if (frame.hasDisplayGeometryChanged()) {
+            quad.position(0);
+            quadTex.position(0);
+            frame.transformCoordinates2d(Coordinates2d.OPENGL_NORMALIZED_DEVICE_COORDINATES, quad,
+                    Coordinates2d.TEXTURE_NORMALIZED, quadTex);
+        }
+        if (frame.getTimestamp() == 0) return;
+
+        GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+        GLES20.glDepthMask(false);
+        GLES20.glUseProgram(prog);
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, tex);
+        quad.position(0);
+        quadTex.position(0);
+        GLES20.glVertexAttribPointer(aPos, 2, GLES20.GL_FLOAT, false, 0, quad);
+        GLES20.glVertexAttribPointer(aTex, 2, GLES20.GL_FLOAT, false, 0, quadTex);
+        GLES20.glEnableVertexAttribArray(aPos);
+        GLES20.glEnableVertexAttribArray(aTex);
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+        GLES20.glDisableVertexAttribArray(aPos);
+        GLES20.glDisableVertexAttribArray(aTex);
+        GLES20.glDepthMask(true);
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST);
+    }
+}
+=====FILE app/src/main/java/com/tectonicastudio/cam3d/ArCaptureActivity.java
+package com.tectonicastudio.cam3d;
+
+import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.DashPathEffect;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RectF;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
+import android.opengl.GLES20;
+import android.opengl.GLSurfaceView;
+import android.opengl.Matrix;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.provider.Settings;
+import android.speech.tts.TextToSpeech;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.google.ar.core.ArCoreApk;
+import com.google.ar.core.Camera;
+import com.google.ar.core.Config;
+import com.google.ar.core.DepthPoint;
+import com.google.ar.core.Frame;
+import com.google.ar.core.HitResult;
+import com.google.ar.core.Plane;
+import com.google.ar.core.Point;
+import com.google.ar.core.PointCloud;
+import com.google.ar.core.Pose;
+import com.google.ar.core.Session;
+import com.google.ar.core.TrackingFailureReason;
+import com.google.ar.core.TrackingState;
+import com.google.ar.core.Trackable;
+import com.google.ar.core.exceptions.CameraNotAvailableException;
+import com.google.ar.core.exceptions.UnavailableApkTooOldException;
+import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException;
+import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
+import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
+
+import java.nio.FloatBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Locale;
+
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.opengles.GL10;
+
+/**
+ * Captura con ARCore nativo: plano por esquinas, medidas, escaneo 3D y modo
+ * AUTOMÁTICO / IA 3D con guía por voz y flechas. Devuelve el resultado a la página.
+ */
+public class ArCaptureActivity extends Activity implements GLSurfaceView.Renderer {
+
+    static volatile String RESULT;
+    static final int MAXP = 200000, REQ_CAM = 1;
+
+    String mode;
+    boolean auto, ai, scanning, installRequested, finishing, permDenied;
+    Session session;
+    GLSurfaceView gl;
+    OverlayView ov;
+    TextView status, chip;
+    Button bShot, bUndo, bDone;
+    final BackgroundRenderer bg = new BackgroundRenderer();
+    volatile int vw, vh;
+    volatile boolean geomChanged;
+    TextToSpeech tts;
+    boolean ttsOk;
+
+    // ---- estado compartido (lock) ----
+    final Object lock = new Object();
+    final float[] vp = new float[16];
+    float projScale = 1.7f;
+    boolean tracking;
+    float[] hit;
+    String kind;
+    float hitDist;
+    final float[] camPos = new float[3];
+    final ArrayList<float[]> planPts = new ArrayList<>();
+    final ArrayList<ArrayList<float[]>> rooms = new ArrayList<>();
+    final ArrayList<float[]> mPts = new ArrayList<>();
+    float[] cloud = new float[30000];
+    byte[] col = new byte[30000];
+    int nPts;
+    final HashSet<Long> vox = new HashSet<>();
+    final int[] azb = new int[36];
+    final int[] band = new int[3];
+    Float floorY;
+    final ArrayList<String> tagK = new ArrayList<>();
+    final ArrayList<Float> tagY = new ArrayList<>();
+    float[] origin;
+    float cov;
+    int pct, lastMilestone;
+    boolean done;
+    String guideDir = "", guideTxt = "";
+    long lastSample, lastGuide, lastStatus, lastSpoken;
+    int frameN;
+
+    int dp(float v) {
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, getResources().getDisplayMetrics());
+    }
+
+    GradientDrawable round(int color, float radiusDp) {
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(color);
+        g.setCornerRadius(dp(radiusDp));
+        return g;
+    }
+
+    @Override
+    protected void onCreate(Bundle b) {
+        super.onCreate(b);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        mode = getIntent().getStringExtra("mode");
+        if (mode == null) mode = "plan";
+        ai = "ai".equals(mode);
+        auto = ai || "auto".equals(mode);
+
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(Color.BLACK);
+        gl = new GLSurfaceView(this);
+        gl.setPreserveEGLContextOnPause(true);
+        gl.setEGLContextClientVersion(2);
+        gl.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        gl.setRenderer(this);
+        gl.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+        root.addView(gl, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        ov = new OverlayView(this);
+        root.addView(ov, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        status = new TextView(this);
+        status.setTextColor(Color.WHITE);
+        status.setTextSize(14);
+        status.setPadding(dp(14), dp(10), dp(14), dp(10));
+        status.setBackground(round(0xB3060B16, 14));
+        status.setText("Iniciando cámara AR…");
+        FrameLayout.LayoutParams sl = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP);
+        sl.setMargins(dp(12), dp(34), dp(64), 0);
+        root.addView(status, sl);
+
+        TextView close = new TextView(this);
+        close.setText("✕");
+        close.setTextColor(Color.WHITE);
+        close.setTextSize(20);
+        close.setGravity(Gravity.CENTER);
+        close.setBackground(round(0xB3060B16, 22));
+        FrameLayout.LayoutParams cl = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.TOP | Gravity.END);
+        cl.setMargins(0, dp(34), dp(12), 0);
+        root.addView(close, cl);
+        close.setOnClickListener(v -> finishCapture());
+
+        chip = new TextView(this);
+        chip.setTextColor(Color.WHITE);
+        chip.setTextSize(14);
+        chip.setTypeface(Typeface.DEFAULT_BOLD);
+        chip.setPadding(dp(14), dp(8), dp(14), dp(8));
+        chip.setBackground(round(0xCC0E7490, 20));
+        chip.setVisibility(View.GONE);
+        FrameLayout.LayoutParams chl = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+        chl.topMargin = dp(150);
+        root.addView(chip, chl);
+        chip.setOnClickListener(v -> onChip());
+
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER);
+        bUndo = new Button(this);
+        bUndo.setText("↶ Deshacer");
+        bShot = new Button(this);
+        bShot.setText(auto ? "■" : "◯");
+        bShot.setTextSize(26);
+        bDone = new Button(this);
+        bDone.setText("✓ Listo");
+        for (Button x : new Button[]{bUndo, bDone}) {
+            x.setTextColor(Color.WHITE);
+            x.setAllCaps(false);
+            x.setBackground(round(0xB3060B16, 22));
+        }
+        bShot.setTextColor(0xFF060B16);
+        GradientDrawable sh = new GradientDrawable();
+        sh.setShape(GradientDrawable.OVAL);
+        sh.setColor(0xFFE8B230);
+        sh.setStroke(dp(4), Color.WHITE);
+        bShot.setBackground(sh);
+        LinearLayout.LayoutParams lp1 = new LinearLayout.LayoutParams(dp(118), dp(46));
+        LinearLayout.LayoutParams lp2 = new LinearLayout.LayoutParams(dp(78), dp(78));
+        lp2.setMargins(dp(18), 0, dp(18), 0);
+        bar.addView(bUndo, lp1);
+        bar.addView(bShot, lp2);
+        bar.addView(bDone, new LinearLayout.LayoutParams(dp(118), dp(46)));
+        FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+        bl.bottomMargin = dp(34);
+        root.addView(bar, bl);
+        if (auto) bUndo.setVisibility(View.INVISIBLE);
+
+        bShot.setOnClickListener(v -> onShot());
+        bUndo.setOnClickListener(v -> onUndo());
+        bDone.setOnClickListener(v -> finishCapture());
+
+        setContentView(root);
+
+        tts = new TextToSpeech(this, s -> {
+            ttsOk = s == TextToSpeech.SUCCESS;
+            if (ttsOk) {
+                tts.setLanguage(new Locale("es", "ES"));
+                if (auto) say(ai ? "Hola, soy IA 3D. Te voy a guiar. Primero apunta al piso y muévete despacio."
+                        : "Captura automática. Apunta al piso y recorre el espacio despacio.");
+            }
+        });
+    }
+
+    // ------------------------------------------------------------ ciclo de vida
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (permDenied) return;
+        if (session == null) {
+            try {
+                switch (ArCoreApk.getInstance().requestInstall(this, !installRequested)) {
+                    case INSTALL_REQUESTED:
+                        installRequested = true;
+                        return;
+                    case INSTALLED:
+                        break;
+                }
+                if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{Manifest.permission.CAMERA}, REQ_CAM);
+                    return;
+                }
+                Session s = new Session(this);
+                Config c = new Config(s);
+                c.setPlaneFindingMode(Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL);
+                c.setFocusMode(Config.FocusMode.AUTO);
+                c.setUpdateMode(Config.UpdateMode.LATEST_CAMERA_IMAGE);
+                if (s.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) c.setDepthMode(Config.DepthMode.AUTOMATIC);
+                s.configure(c);
+                session = s;
+            } catch (UnavailableUserDeclinedInstallationException e) {
+                fail("Para usar la cámara AR hace falta instalar «Servicios de Google Play para RA». Vuelve a intentarlo y acepta la instalación.", false);
+                return;
+            } catch (UnavailableDeviceNotCompatibleException e) {
+                fail("Este teléfono no es compatible con ARCore (realidad aumentada de Google). Puedes crear espacios por medidas en Plano o importar escaneos.", false);
+                return;
+            } catch (UnavailableApkTooOldException e) {
+                fail("Actualiza «Servicios de Google Play para RA» desde Play Store y vuelve a intentar.", false);
+                return;
+            } catch (UnavailableSdkTooOldException e) {
+                fail("Esta versión de CAM3D es antigua para tu ARCore. Instala la actualización de CAM3D.", false);
+                return;
+            } catch (Exception e) {
+                fail("No se pudo iniciar ARCore: " + e.getMessage(), false);
+                return;
+            }
+        }
+        try {
+            session.resume();
+        } catch (CameraNotAvailableException e) {
+            session = null;
+            fail("La cámara está ocupada por otra app. Ciérrala y vuelve a intentar.", false);
+            return;
+        }
+        gl.onResume();
+        geomChanged = true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
+        super.onRequestPermissionsResult(code, perms, res);
+        if (code == REQ_CAM && (res.length == 0 || res[0] != PackageManager.PERMISSION_GRANTED)) {
+            permDenied = true;
+            fail("CAM3D necesita el permiso de cámara para capturar. Actívalo en Ajustes › Apps › CAM3D › Permisos › Cámara.", true);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (session != null) {
+            gl.onPause();
+            session.pause();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (session != null) session.close();
+        session = null;
+        if (tts != null) tts.shutdown();
+        super.onDestroy();
+    }
+
+    @Override
+    public void onBackPressed() {
+        finishCapture();
+    }
+
+    void fail(String msg, boolean settings) {
+        if (isFinishing()) return;
+        AlertDialog.Builder d = new AlertDialog.Builder(this)
+                .setTitle("Cámara AR")
+                .setMessage(msg)
+                .setCancelable(false)
+                .setPositiveButton("Entendido", (x, y) -> {
+                    RESULT = "{\"error\":" + org.json.JSONObject.quote(msg) + "}";
+                    setResult(RESULT_OK);
+                    finish();
+                });
+        if (settings) d.setNeutralButton("Abrir ajustes", (x, y) -> {
+            startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", getPackageName(), null)));
+            finish();
+        });
+        d.show();
+    }
+
+    // ------------------------------------------------------------ render
+    @Override
+    public void onSurfaceCreated(GL10 g, EGLConfig c) {
+        GLES20.glClearColor(0f, 0f, 0f, 1f);
+        bg.create();
+    }
+
+    @Override
+    public void onSurfaceChanged(GL10 g, int w, int h) {
+        GLES20.glViewport(0, 0, w, h);
+        vw = w;
+        vh = h;
+        geomChanged = true;
+    }
+
+    @Override
+    public void onDrawFrame(GL10 g) {
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+        Session s = session;
+        if (s == null) return;
+        try {
+            if (geomChanged) {
+                s.setDisplayGeometry(getWindowManager().getDefaultDisplay().getRotation(), vw, vh);
+                geomChanged = false;
+            }
+            s.setCameraTextureName(bg.tex);
+            Frame f = s.update();
+            bg.draw(f);
+            process(s, f);
+        } catch (Throwable t) {
+            // cuadro perdido: se sigue con el próximo
+        }
+        ov.postInvalidate();
+    }
+
+    static boolean usable(Trackable t, Pose p) {
+        if (t instanceof Plane) return ((Plane) t).isPoseInPolygon(p);
+        if (t instanceof DepthPoint) return true;
+        return t instanceof Point && ((Point) t).getOrientationMode() == Point.OrientationMode.ESTIMATED_SURFACE_NORMAL;
+    }
+
+    String classify(Trackable t, Pose p) {
+        float ny;
+        if (t instanceof Plane) {
+            Plane.Type ty = ((Plane) t).getType();
+            if (ty == Plane.Type.VERTICAL) return "Pared";
+            if (ty == Plane.Type.HORIZONTAL_DOWNWARD_FACING) return "Techo";
+            ny = 1f;
+        } else {
+            ny = p.getYAxis()[1];
+        }
+        if (ny > 0.8f) {
+            Float fy = floorY;
+            if (fy != null && p.ty() - fy > 0.35f) return "Superficie";
+            return "Piso";
+        }
+        if (ny < -0.8f) return "Techo";
+        if (Math.abs(ny) < 0.4f) return "Pared";
+        return "Superficie";
+    }
+
+    static int code(String k) {
+        if ("Piso".equals(k)) return 0;
+        if ("Pared".equals(k)) return 1;
+        if ("Techo".equals(k)) return 2;
+        return 3;
+    }
+
+    void process(Session s, Frame f) {
+        Camera cam = f.getCamera();
+        frameN++;
+        long now = System.currentTimeMillis();
+        if (cam.getTrackingState() != TrackingState.TRACKING) {
+            synchronized (lock) {
+                tracking = false;
+                hit = null;
+                kind = null;
+            }
+            setStatus(trackMsg(cam.getTrackingFailureReason()), now, null, 0);
+            return;
+        }
+        float[] view = new float[16], proj = new float[16], m = new float[16];
+        cam.getViewMatrix(view, 0);
+        cam.getProjectionMatrix(proj, 0, 0.05f, 100f);
+        Matrix.multiplyMM(m, 0, proj, 0, view, 0);
+        Pose cp = cam.getPose();
+
+        if (frameN % 15 == 0) {
+            Float fy = null;
+            for (Plane p : s.getAllTrackables(Plane.class)) {
+                if (p.getTrackingState() != TrackingState.TRACKING || p.getSubsumedBy() != null) continue;
+                if (p.getType() != Plane.Type.HORIZONTAL_UPWARD_FACING) continue;
+                float y = p.getCenterPose().ty();
+                if (y < cp.ty() - 0.6f && (fy == null || y < fy)) fy = y;
+            }
+            if (fy != null) synchronized (lock) {
+                if (floorY == null || fy < floorY) floorY = fy;
+            }
+        }
+
+        float[] h = null;
+        String k = null;
+        for (HitResult hr : f.hitTest(vw / 2f, vh / 2f)) {
+            Trackable t = hr.getTrackable();
+            Pose p = hr.getHitPose();
+            if (!usable(t, p)) continue;
+            h = new float[]{p.tx(), p.ty(), p.tz()};
+            k = classify(t, p);
+            break;
+        }
+        float d = h == null ? 0 : (float) Math.sqrt(sq(h[0] - cp.tx()) + sq(h[1] - cp.ty()) + sq(h[2] - cp.tz()));
+
+        boolean sampling = auto || ("cloud".equals(mode) && scanning);
+        ArrayList<float[]> add = null;
+        if (sampling && now - lastSample > 140) {
+            lastSample = now;
+            add = new ArrayList<>();
+            final int GX = 6, GY = 8;
+            for (int i = 0; i < GX; i++)
+                for (int j = 0; j < GY; j++) {
+                    float x = vw * (i + 0.5f) / GX, y = vh * (0.12f + 0.76f * (j + 0.5f) / GY);
+                    for (HitResult hr : f.hitTest(x, y)) {
+                        Trackable t = hr.getTrackable();
+                        Pose p = hr.getHitPose();
+                        if (!usable(t, p)) continue;
+                        float dd = (float) Math.sqrt(sq(p.tx() - cp.tx()) + sq(p.ty() - cp.ty()) + sq(p.tz() - cp.tz()));
+                        if (dd < 8f) add.add(new float[]{p.tx(), p.ty(), p.tz(), code(classify(t, p))});
+                        break;
+                    }
+                }
+            try (PointCloud pc = f.acquirePointCloud()) {
+                FloatBuffer fb = pc.getPoints();
+                int base = fb.position(), n = fb.remaining() / 4;
+                for (int q = 0; q < n; q++) {
+                    float c = fb.get(base + q * 4 + 3);
+                    if (c < 0.35f) continue;
+                    add.add(new float[]{fb.get(base + q * 4), fb.get(base + q * 4 + 1), fb.get(base + q * 4 + 2), -1});
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+
+        String speakNow = null;
+        synchronized (lock) {
+            tracking = true;
+            System.arraycopy(m, 0, vp, 0, 16);
+            projScale = proj[5];
+            camPos[0] = cp.tx();
+            camPos[1] = cp.ty();
+            camPos[2] = cp.tz();
+            hit = h;
+            kind = k;
+            hitDist = d;
+            if (origin == null) origin = new float[]{cp.tx(), cp.ty(), cp.tz()};
+            if (add != null) {
+                for (float[] a : add) addPoint(a);
+                coverage();
+            }
+            if (auto && now - lastGuide > 300) {
+                lastGuide = now;
+                speakNow = guide(cp, now);
+            }
+        }
+        if (speakNow != null) say(speakNow);
+        if (auto && pct >= 95 && !done) {
+            done = true;
+            runOnUiThread(() -> {
+                vibrate(new long[]{0, 60, 60, 140});
+                say("¡Captura completa! Reconstruyendo el espacio.");
+                Toast.makeText(this, "¡Captura completa! Reconstruyendo…", Toast.LENGTH_SHORT).show();
+                ov.postDelayed(this::finishCapture, 1800);
+            });
+        }
+        setStatus(null, now, k, d);
+    }
+
+    static float sq(float v) {
+        return v * v;
+    }
+
+    static float wrap(float a) {
+        while (a > Math.PI) a -= 2 * Math.PI;
+        while (a < -Math.PI) a += 2 * Math.PI;
+        return a;
+    }
+
+    void addPoint(float[] a) {
+        if (nPts >= MAXP) return;
+        long ix = Math.round(a[0] / 0.04f), iy = Math.round(a[1] / 0.04f), iz = Math.round(a[2] / 0.04f);
+        long key = ((ix & 0x1FFFFF) << 42) | ((iy & 0x1FFFFF) << 21) | (iz & 0x1FFFFF);
+        if (!vox.add(key)) return;
+        if (nPts * 3 + 3 > cloud.length) {
+            cloud = Arrays.copyOf(cloud, cloud.length * 2);
+            col = Arrays.copyOf(col, col.length * 2);
+        }
+        int c = (int) a[3];
+        float dy = floorY == null ? 1f : a[1] - floorY;
+        if (c < 0) c = floorY == null ? 3 : dy < 0.12f ? 0 : dy > 2.0f ? 2 : 1;
+        int[][] pal = {{34, 211, 238}, {168, 85, 247}, {255, 122, 26}, {232, 178, 48}};
+        int o = nPts * 3;
+        cloud[o] = a[0];
+        cloud[o + 1] = a[1];
+        cloud[o + 2] = a[2];
+        col[o] = (byte) pal[c][0];
+        col[o + 1] = (byte) pal[c][1];
+        col[o + 2] = (byte) pal[c][2];
+        nPts++;
+        if (origin != null) {
+            float dx = a[0] - origin[0], dz = a[2] - origin[2];
+            if (dx * dx + dz * dz > 0.36f) {
+                double az = Math.atan2(dz, dx);
+                int bi = ((int) Math.floor((az + Math.PI) / (2 * Math.PI) * 36) % 36 + 36) % 36;
+                azb[bi]++;
+            }
+        }
+        if (floorY != null) band[dy < 0.8f ? 0 : dy < 1.8f ? 1 : 2]++;
+    }
+
+    void coverage() {
+        int filled = 0;
+        for (int v : azb) if (v >= 20) filled++;
+        int bands = 0;
+        for (int v : band) if (v >= 120) bands++;
+        float bf = filled / 36f;
+        cov = floorY == null ? Math.min(0.3f, 0.7f * bf) : 0.7f * bf + 0.3f * bands / 3f;
+        pct = Math.round(cov * 100);
+    }
+
+    /** Decide hacia dónde mover el teléfono. Devuelve el texto a decir en voz (o null). */
+    String guide(Pose cp, long now) {
+        String dir, txt;
+        if (floorY == null) {
+            dir = "down";
+            txt = "Apunta al piso y muévete despacio";
+        } else {
+            float[] z = cp.getZAxis();
+            float fa = (float) Math.atan2(-z[2], -z[0]);
+            int best = -1;
+            float bestD = 99;
+            for (int i = 0; i < 36; i++) {
+                if (azb[i] >= 20) continue;
+                float c = (float) (-Math.PI + (i + 0.5) * 2 * Math.PI / 36);
+                float dd = wrap(c - fa);
+                if (Math.abs(dd) < Math.abs(bestD)) {
+                    bestD = dd;
+                    best = i;
+                }
+            }
+            if (best >= 0 && Math.abs(bestD) > 0.45f) {
+                dir = bestD < 0 ? "left" : "right";
+                txt = bestD < 0 ? "Gira a la izquierda" : "Gira a la derecha";
+            } else if (band[2] < 120) {
+                dir = "up";
+                txt = "Sube la cámara hacia el techo";
+            } else if (band[0] < 120) {
+                dir = "down";
+                txt = "Baja la cámara hacia el piso";
+            } else if (best >= 0) {
+                dir = "hold";
+                txt = "Muy bien, sigue despacio por esa zona";
+            } else {
+                dir = "hold";
+                txt = "Casi listo, recorre los rincones";
+            }
+        }
+        guideTxt = txt;
+        String say = null;
+        int ms = pct >= 75 ? 75 : pct >= 50 ? 50 : pct >= 25 ? 25 : 0;
+        if (ms > lastMilestone) {
+            lastMilestone = ms;
+            say = "Vas en " + ms + " por ciento. " + txt;
+        } else if ((!dir.equals(guideDir) && now - lastSpoken > 2500) || now - lastSpoken > (ai ? 6000 : 8000)) {
+            say = txt;
+        }
+        guideDir = dir;
+        if (say != null) lastSpoken = now;
+        return say;
+    }
+
+    String trackMsg(TrackingFailureReason r) {
+        switch (r) {
+            case BAD_STATE: return "Reiniciando la cámara AR…";
+            case INSUFFICIENT_LIGHT: return "Hace falta más luz";
+            case EXCESSIVE_MOTION: return "Muévete más despacio";
+            case INSUFFICIENT_FEATURES: return "Apunta a zonas con textura o detalles";
+            case CAMERA_UNAVAILABLE: return "Otra app está usando la cámara";
+            default: return "Mueve el teléfono despacio para iniciar";
+        }
+    }
+
+    void setStatus(String forced, long now, String k, float d) {
+        if (now - lastStatus < 250) return;
+        lastStatus = now;
+        String msg;
+        if (forced != null) msg = forced;
+        else if (auto) msg = (ai ? "IA 3D" : "Automático") + " · " + pct + "% · " + guideTxt;
+        else if ("plan".equals(mode)) msg = "Plano: apunta a cada esquina del piso y toca ◯ (" + planPts.size() + " esquinas). Toca cerca de la primera para cerrar.";
+        else if ("measure".equals(mode)) msg = "Medir: toca ◯ en el punto inicial y en el final" + (mPts.size() % 2 == 1 ? " (falta el final)" : "");
+        else msg = "Escaneo 3D: " + nPts + " puntos · toca ◯ para " + (scanning ? "pausar" : "escanear");
+        if (forced == null && k == null && !auto) msg = "Mueve el teléfono despacio para detectar superficies";
+        final String fm = msg, fk = k;
+        final String dist = String.format(Locale.US, "%.2f m", d);
+        runOnUiThread(() -> {
+            status.setText(fm);
+            if (fk == null) chip.setVisibility(View.GONE);
+            else {
+                chip.setVisibility(View.VISIBLE);
+                chip.setText(fk + " · " + dist + "   ✓ confirmar");
+                int c = "Piso".equals(fk) ? 0xCC0E7490 : "Pared".equals(fk) ? 0xCC7E22CE : "Techo".equals(fk) ? 0xCCC2410C : 0xCCA16207;
+                chip.setBackground(round(c, 20));
+            }
+        });
+    }
+
+    // ------------------------------------------------------------ acciones
+    void toast(String t) {
+        runOnUiThread(() -> Toast.makeText(this, t, Toast.LENGTH_SHORT).show());
+    }
+
+    void say(String t) {
+        if (ttsOk && t != null) tts.speak(t, TextToSpeech.QUEUE_FLUSH, null, "ar");
+    }
+
+    @SuppressWarnings("deprecation")
+    void vibrate(long[] pattern) {
+        try {
+            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+            if (v == null) return;
+            if (Build.VERSION.SDK_INT >= 26) v.vibrate(VibrationEffect.createWaveform(pattern, -1));
+            else v.vibrate(pattern, -1);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    void onShot() {
+        vibrate(new long[]{0, 18});
+        synchronized (lock) {
+            if (auto) {
+                if (cov > 0.25f || done) {
+                    finishCapture();
+                } else toast("Sigue moviendo el teléfono: " + pct + "% capturado");
+                return;
+            }
+            if ("cloud".equals(mode)) {
+                scanning = !scanning;
+                toast(scanning ? "Escaneando… recorre el espacio despacio" : "Escaneo en pausa");
+                return;
+            }
+            if (hit == null) {
+                toast("Apunta a una superficie");
+                return;
+            }
+            if ("plan".equals(mode)) {
+                float y = floorY != null ? floorY : hit[1];
+                float[] p = {hit[0], y, hit[2]};
+                if (planPts.size() >= 3 && Math.hypot(p[0] - planPts.get(0)[0], p[2] - planPts.get(0)[2]) < 0.25) closeRoom();
+                else planPts.add(p);
+            } else {
+                mPts.add(hit.clone());
+                if (mPts.size() % 2 == 0) {
+                    float[] a = mPts.get(mPts.size() - 2), b = mPts.get(mPts.size() - 1);
+                    String t = String.format(Locale.US, "%.2f m", Math.sqrt(sq(a[0] - b[0]) + sq(a[1] - b[1]) + sq(a[2] - b[2])));
+                    toast(t);
+                    say(t.replace(".", ",").replace(" m", " metros"));
+                }
+            }
+        }
+    }
+
+    void closeRoom() {
+        if (planPts.size() < 3) return;
+        rooms.add(new ArrayList<>(planPts));
+        double a = 0;
+        for (int i = 0; i < planPts.size(); i++) {
+            float[] p = planPts.get(i), q = planPts.get((i + 1) % planPts.size());
+            a += p[0] * q[2] - q[0] * p[2];
+        }
+        planPts.clear();
+        String t = String.format(Locale.US, "Espacio guardado: %.2f m²", Math.abs(a) / 2);
+        toast(t);
+        say("Espacio guardado");
+    }
+
+    void onUndo() {
+        synchronized (lock) {
+            if ("plan".equals(mode) && !planPts.isEmpty()) planPts.remove(planPts.size() - 1);
+            else if ("measure".equals(mode) && !mPts.isEmpty()) mPts.remove(mPts.size() - 1);
+            else if ("cloud".equals(mode)) {
+                nPts = 0;
+                vox.clear();
+                Arrays.fill(azb, 0);
+                Arrays.fill(band, 0);
+            }
+        }
+    }
+
+    void onChip() {
+        synchronized (lock) {
+            if (kind == null || hit == null) return;
+            tagK.add(kind);
+            tagY.add(hit[1]);
+            if ("Piso".equals(kind)) floorY = hit[1];
+            toast(kind + " confirmado");
+            say(kind + " confirmado");
+        }
+        vibrate(new long[]{0, 25});
+    }
+
+    static void num(StringBuilder sb, float v) {
+        if (Float.isNaN(v) || Float.isInfinite(v)) v = 0;
+        sb.append(Math.round(v * 1000) / 1000f);
+    }
+
+    static void pt(StringBuilder sb, float[] p) {
+        sb.append("{\"x\":");
+        num(sb, p[0]);
+        sb.append(",\"y\":");
+        num(sb, p[1]);
+        sb.append(",\"z\":");
+        num(sb, p[2]);
+        sb.append('}');
+    }
+
+    void finishCapture() {
+        if (finishing) return;
+        finishing = true;
+        synchronized (lock) {
+            if ("plan".equals(mode) && planPts.size() >= 3) closeRoom();
+            StringBuilder sb = new StringBuilder(nPts * 24 + 256);
+            sb.append("{\"mode\":\"").append(ai ? "ai" : auto ? "auto" : mode).append("\",\"floorY\":");
+            if (floorY == null) sb.append("null");
+            else num(sb, floorY);
+            sb.append(",\"tags\":[");
+            for (int i = 0; i < tagK.size(); i++) {
+                if (i > 0) sb.append(',');
+                sb.append("{\"k\":\"").append(tagK.get(i)).append("\",\"y\":");
+                num(sb, tagY.get(i));
+                sb.append('}');
+            }
+            sb.append("],\"rooms\":[");
+            for (int r = 0; r < rooms.size(); r++) {
+                if (r > 0) sb.append(',');
+                ArrayList<float[]> rp = rooms.get(r);
+                sb.append("{\"y\":");
+                num(sb, rp.get(0)[1]);
+                sb.append(",\"pts\":[");
+                for (int i = 0; i < rp.size(); i++) {
+                    if (i > 0) sb.append(',');
+                    sb.append("{\"x\":");
+                    num(sb, rp.get(i)[0]);
+                    sb.append(",\"z\":");
+                    num(sb, rp.get(i)[2]);
+                    sb.append('}');
+                }
+                sb.append("]}");
+            }
+            sb.append("],\"measures\":[");
+            for (int i = 0; i + 1 < mPts.size(); i += 2) {
+                if (i > 0) sb.append(',');
+                sb.append("{\"a\":");
+                pt(sb, mPts.get(i));
+                sb.append(",\"b\":");
+                pt(sb, mPts.get(i + 1));
+                sb.append('}');
+            }
+            sb.append("],\"cloud\":[");
+            for (int i = 0; i < nPts * 3; i++) {
+                if (i > 0) sb.append(',');
+                num(sb, cloud[i]);
+            }
+            sb.append("],\"col\":[");
+            for (int i = 0; i < nPts * 3; i++) {
+                if (i > 0) sb.append(',');
+                sb.append(col[i] & 0xFF);
+            }
+            sb.append("]}");
+            RESULT = sb.toString();
+        }
+        setResult(RESULT_OK);
+        finish();
+    }
+
+    // ------------------------------------------------------------ capa de dibujo
+    class OverlayView extends View {
+        final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG), dot = new Paint(Paint.ANTI_ALIAS_FLAG),
+                txt = new Paint(Paint.ANTI_ALIAS_FLAG), box = new Paint(Paint.ANTI_ALIAS_FLAG), dash = new Paint(Paint.ANTI_ALIAS_FLAG);
+        final float[] o = new float[2], o2 = new float[2];
+        float W, H;
+        final float[] m = new float[16];
+
+        OverlayView(Context c) {
+            super(c);
+            line.setStyle(Paint.Style.STROKE);
+            line.setStrokeWidth(dp(3));
+            line.setStrokeCap(Paint.Cap.ROUND);
+            dash.setStyle(Paint.Style.STROKE);
+            dash.setStrokeWidth(dp(2.5f));
+            dash.setColor(0xFF7CF3FF);
+            dash.setPathEffect(new DashPathEffect(new float[]{dp(8), dp(6)}, 0));
+            txt.setColor(Color.WHITE);
+            txt.setTextSize(dp(13));
+            txt.setTypeface(Typeface.DEFAULT_BOLD);
+            box.setColor(0xCC060B16);
+        }
+
+        boolean proj(float x, float y, float z, float[] out) {
+            float w = m[3] * x + m[7] * y + m[11] * z + m[15];
+            if (w <= 0.01f) return false;
+            float cx = (m[0] * x + m[4] * y + m[8] * z + m[12]) / w;
+            float cy = (m[1] * x + m[5] * y + m[9] * z + m[13]) / w;
+            out[0] = (cx + 1f) * 0.5f * W;
+            out[1] = (1f - cy) * 0.5f * H;
+            return true;
+        }
+
+        void label(Canvas c, String s, float x, float y) {
+            float tw = txt.measureText(s), p = dp(6);
+            c.drawRoundRect(new RectF(x - tw / 2 - p, y - dp(13) - p / 2, x + tw / 2 + p, y + p), dp(8), dp(8), box);
+            c.drawText(s, x - tw / 2, y, txt);
+        }
+
+        void seg(Canvas c, float[] a, float[] b, int color, boolean showLen) {
+            if (!proj(a[0], a[1], a[2], o) || !proj(b[0], b[1], b[2], o2)) return;
+            line.setColor(color);
+            c.drawLine(o[0], o[1], o2[0], o2[1], line);
+            if (showLen) {
+                double L = Math.sqrt(sq(a[0] - b[0]) + sq(a[1] - b[1]) + sq(a[2] - b[2]));
+                label(c, String.format(Locale.US, "%.2f m", L), (o[0] + o2[0]) / 2, (o[1] + o2[1]) / 2);
+            }
+        }
+
+        @Override
+        protected void onDraw(Canvas c) {
+            W = getWidth();
+            H = getHeight();
+            float[] h;
+            String k;
+            float d, sc;
+            boolean tr;
+            Float fy;
+            ArrayList<float[]> pp, mp;
+            ArrayList<ArrayList<float[]>> rr;
+            float[] sample;
+            int p100, n;
+            String gd;
+            float[] org;
+            float[] cpos = new float[3];
+            synchronized (lock) {
+                System.arraycopy(vp, 0, m, 0, 16);
+                h = hit == null ? null : hit.clone();
+                k = kind;
+                d = hitDist;
+                sc = projScale;
+                tr = tracking;
+                fy = floorY;
+                pp = new ArrayList<>(planPts);
+                mp = new ArrayList<>(mPts);
+                rr = new ArrayList<>(rooms);
+                n = nPts;
+                int st = Math.max(1, n / 1500);
+                sample = new float[(n / st + 1) * 3];
+                int j = 0;
+                for (int i = 0; i < n; i += st) {
+                    sample[j++] = cloud[i * 3];
+                    sample[j++] = cloud[i * 3 + 1];
+                    sample[j++] = cloud[i * 3 + 2];
+                }
+                if (j < sample.length) sample = Arrays.copyOf(sample, j);
+                p100 = pct;
+                gd = guideDir;
+                org = origin == null ? null : origin.clone();
+                System.arraycopy(camPos, 0, cpos, 0, 3);
+            }
+            if (!tr) return;
+            float cx = W / 2, cy = H / 2;
+
+            // nube de puntos
+            dot.setColor(0xCC7CF3FF);
+            for (int i = 0; i + 2 < sample.length; i += 3)
+                if (proj(sample[i], sample[i + 1], sample[i + 2], o) && o[0] >= 0 && o[0] <= W && o[1] >= 0 && o[1] <= H)
+                    c.drawCircle(o[0], o[1], dp(1.6f), dot);
+
+            // espacios cerrados
+            for (ArrayList<float[]> r : rr)
+                for (int i = 0; i < r.size(); i++) seg(c, r.get(i), r.get((i + 1) % r.size()), 0xFF22C55E, true);
+            // esquinas del plano
+            for (int i = 0; i + 1 < pp.size(); i++) seg(c, pp.get(i), pp.get(i + 1), 0xFFE8B230, true);
+            dot.setColor(0xFFE8B230);
+            for (float[] p : pp) if (proj(p[0], p[1], p[2], o)) c.drawCircle(o[0], o[1], dp(6), dot);
+            // medidas
+            for (int i = 0; i + 1 < mp.size(); i += 2) seg(c, mp.get(i), mp.get(i + 1), 0xFFEF4444, true);
+            dot.setColor(0xFFEF4444);
+            for (float[] p : mp) if (proj(p[0], p[1], p[2], o)) c.drawCircle(o[0], o[1], dp(6), dot);
+
+            // cinta en vivo desde el último punto hasta la retícula
+            float[] last = null;
+            if ("plan".equals(mode) && !pp.isEmpty()) last = pp.get(pp.size() - 1);
+            if ("measure".equals(mode) && mp.size() % 2 == 1) last = mp.get(mp.size() - 1);
+            if (last != null && h != null) {
+                float[] hh = "plan".equals(mode) && fy != null ? new float[]{h[0], fy, h[2]} : h;
+                if (proj(last[0], last[1], last[2], o) && proj(hh[0], hh[1], hh[2], o2)) {
+                    c.drawLine(o[0], o[1], o2[0], o2[1], dash);
+                    double L = Math.sqrt(sq(last[0] - hh[0]) + sq(last[1] - hh[1]) + sq(last[2] - hh[2]));
+                    label(c, String.format(Locale.US, "%.2f m", L), (o[0] + o2[0]) / 2, (o[1] + o2[1]) / 2 - dp(10));
+                }
+            }
+
+            // retícula
+            int rc = k == null ? 0xFFFFFFFF : "Piso".equals(k) ? 0xFF22D3EE : "Pared".equals(k) ? 0xFFA855F7 : "Techo".equals(k) ? 0xFFFF7A1A : 0xFFE8B230;
+            line.setColor(rc);
+            c.drawCircle(cx, cy, dp(k == null ? 14 : 22), line);
+            c.drawLine(cx - dp(6), cy, cx + dp(6), cy, line);
+            c.drawLine(cx, cy - dp(6), cx, cy + dp(6), line);
+
+            // reglas móviles (marcas cada 10 cm a la distancia de la superficie)
+            if (h != null && d > 0.05f) {
+                float ppm = (H / 2f) * sc / d;
+                float step = ppm * 0.1f;
+                if (step > dp(4) && step < W) {
+                    float yR = dp(118);
+                    Paint rl = new Paint(Paint.ANTI_ALIAS_FLAG);
+                    rl.setColor(0xCCFFFFFF);
+                    rl.setStrokeWidth(dp(1.5f));
+                    c.drawLine(0, yR, W, yR, rl);
+                    float off = (float) (((h[0] * ppm) % step + step) % step);
+                    int idx0 = (int) Math.floor(h[0] / 0.1f);
+                    for (int i = -60; i <= 60; i++) {
+                        float x = cx - off + i * step;
+                        if (x < 0 || x > W) continue;
+                        int idx = idx0 + i;
+                        boolean big = idx % 5 == 0;
+                        c.drawLine(x, yR, x, yR + dp(big ? 14 : 7), rl);
+                    }
+                    float xR = dp(26);
+                    c.drawLine(xR, 0, xR, H, rl);
+                    float offY = (float) (((h[1] * ppm) % step + step) % step);
+                    int idy0 = (int) Math.floor(h[1] / 0.1f);
+                    for (int i = -80; i <= 80; i++) {
+                        float y = cy + offY - i * step;
+                        if (y < 0 || y > H) continue;
+                        boolean big = (idy0 + i) % 5 == 0;
+                        c.drawLine(xR, y, xR + dp(big ? 14 : 7), y, rl);
+                    }
+                    label(c, String.format(Locale.US, "↔ %.2f m", d), cx, yR + dp(36));
+                    if (fy != null) label(c, String.format(Locale.US, "Alt %.2f m", h[1] - fy), xR + dp(52), cy - dp(30));
+                }
+            }
+
+            if (!auto) return;
+            // anillo de cobertura
+            float R = dp(34), rx = W - R - dp(16), ry = dp(150);
+            Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+            ring.setStyle(Paint.Style.STROKE);
+            ring.setStrokeWidth(dp(6));
+            ring.setColor(0x55FFFFFF);
+            c.drawCircle(rx, ry, R, ring);
+            ring.setColor(p100 >= 95 ? 0xFF22C55E : 0xFF22D3EE);
+            c.drawArc(new RectF(rx - R, ry - R, rx + R, ry + R), -90, 3.6f * p100, false, ring);
+            String ps = p100 + "%";
+            c.drawText(ps, rx - txt.measureText(ps) / 2, ry + dp(5), txt);
+
+            // flecha guía
+            if (gd != null && !gd.isEmpty() && !"hold".equals(gd)) {
+                Paint ar = new Paint(Paint.ANTI_ALIAS_FLAG);
+                ar.setColor(0xEEE8B230);
+                float s = dp(34);
+                float ax = cx, ay = cy;
+                switch (gd) {
+                    case "left": ax = dp(70); break;
+                    case "right": ax = W - dp(70); break;
+                    case "up": ay = cy - dp(140); break;
+                    case "down": ay = cy + dp(120); break;
+                }
+                Path pth = new Path();
+                switch (gd) {
+                    case "left": pth.moveTo(ax - s, ay); pth.lineTo(ax + s * 0.6f, ay - s); pth.lineTo(ax + s * 0.6f, ay + s); break;
+                    case "right": pth.moveTo(ax + s, ay); pth.lineTo(ax - s * 0.6f, ay - s); pth.lineTo(ax - s * 0.6f, ay + s); break;
+                    case "up": pth.moveTo(ax, ay - s); pth.lineTo(ax - s, ay + s * 0.6f); pth.lineTo(ax + s, ay + s * 0.6f); break;
+                    default: pth.moveTo(ax, ay + s); pth.lineTo(ax - s, ay - s * 0.6f); pth.lineTo(ax + s, ay - s * 0.6f); break;
+                }
+                pth.close();
+                c.drawPath(pth, ar);
+            }
+
+            // radar (vista superior)
+            if (org != null) {
+                float RR = dp(58), qx = dp(16) + RR, qy = H - dp(150) - RR;
+                Paint rb = new Paint(Paint.ANTI_ALIAS_FLAG);
+                rb.setColor(0xB3060B16);
+                c.drawCircle(qx, qy, RR, rb);
+                rb.setColor(0xCC7CF3FF);
+                float scl = RR / 5f;
+                for (int i = 0; i + 2 < sample.length; i += 3) {
+                    float x = qx + (sample[i] - org[0]) * scl, y = qy + (sample[i + 2] - org[2]) * scl;
+                    if (sq(x - qx) + sq(y - qy) < sq(RR - dp(4))) c.drawRect(x, y, x + dp(1.5f), y + dp(1.5f), rb);
+                }
+                rb.setColor(0xFFE8B230);
+                c.drawCircle(qx + (cpos[0] - org[0]) * scl, qy + (cpos[2] - org[2]) * scl, dp(4), rb);
+            }
+        }
+    }
+}
