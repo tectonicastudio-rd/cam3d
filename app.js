@@ -184,6 +184,7 @@ const AR = {
   supported: false, depth: false, mode: 'plan', session: null,
   async check() {
     const st = $('#arStatus');
+    if (window.CAM3D_DESKTOP) { this.supported = false; st.innerHTML = '💻 Versión de escritorio: la cámara AR está en la app de Android. Captura con el teléfono, guarda el <b>Respaldo .cam3d</b> y ábrelo aquí para modelar, acotar y exportar.'; return; }
     if (window.CAM3D_NATIVE) { this.supported = true; st.innerHTML = '✅ Cámara AR nativa (ARCore). Si falta, la app instala <b>Servicios de Google Play para RA</b> automáticamente.'; return; }
     if (!navigator.xr) { st.innerHTML = '⚠️ Este navegador no tiene realidad aumentada. En Android usa <b>Chrome</b> actualizado con <b>Servicios de Google Play para RA</b>. Mientras tanto puedes importar escaneos y crear espacios por medidas.'; return; }
     this.supported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
@@ -191,6 +192,7 @@ const AR = {
   },
   async start(mode) {
     if (window.CAM3D_NATIVE) { window.SFX && SFX.play('tick'); CAM3DNative.startAR(mode); return; }
+    if (window.CAM3D_DESKTOP) { await dialog('<h2 style="margin:0 0 6px">📱 Captura con el teléfono</h2><p class="mut" style="margin:0">Versión de escritorio: la cámara AR está en la app de Android. Captura con el teléfono, guarda el <b>Respaldo .cam3d</b> y ábrelo aquí para modelar, acotar y exportar.</p>', 'Entendido'); return; }
     if (!this.supported) await this.check();
     if (!this.supported) { toast('Realidad aumentada no disponible: instala o actualiza Servicios de Google Play para RA', 5000); return; }
     if (!(await ensureCamera())) return;
@@ -419,6 +421,7 @@ const CAM_STEPS = '<ol style="margin:8px 0 0;padding-left:20px;line-height:1.6;f
 async function camState() { try { return (await navigator.permissions.query({ name: 'camera' })).state; } catch (e) { return 'unknown'; } }
 async function ensureCamera() {
   if (window.CAM3D_NATIVE) return true;
+  if (window.CAM3D_DESKTOP) return false;
   let st = await camState(); let ok = false; try { ok = localStorage.cam3dCamOK === '1'; } catch (e) { }
   if (st === 'granted' || (st === 'unknown' && ok)) return true;
   if (st === 'denied') return camBlocked();
@@ -574,7 +577,7 @@ $('#aiSend').onclick = () => sendChat();
 // ---- micrófono: dictado por voz con envío automático
 let viaVoz = false;
 (function mic() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition; const send = $('#aiSend');
+  const SR = window.CAM3D_DESKTOP ? null : (window.SpeechRecognition || window.webkitSpeechRecognition); const send = $('#aiSend');
   const st = document.createElement('style'); st.textContent = '#aiMic{border:0;border-radius:14px;width:50px;flex:none;background:rgba(255,255,255,.08);border:1px solid var(--line);color:#fff;font-size:20px;position:relative}#aiMic.on{background:linear-gradient(135deg,#ef4444,#db2777);box-shadow:0 0 0 0 rgba(239,68,68,.7);animation:micp 1.2s infinite}@keyframes micp{70%{box-shadow:0 0 0 14px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}#aiIn.rec{border-color:#ef4444;box-shadow:0 0 12px rgba(239,68,68,.4)}'; document.head.appendChild(st);
   const b = document.createElement('button'); b.id = 'aiMic'; b.type = 'button'; b.setAttribute('aria-label', 'Hablar'); b.textContent = '🎤'; send.parentNode.insertBefore(b, send);
   if (!SR) { b.onclick = () => toast('Tu navegador no tiene dictado por voz. Usa el micrófono del teclado del teléfono.', 4500); return; }
@@ -605,7 +608,7 @@ $$('[data-ar]').forEach(t => t.onclick = () => AR.start(t.dataset.ar));
   try { await DB.open(); const all = await DB.all(); const last = localStorage.getItem('cam3d_last'); P = all.find(p => p.id === last) || all[0]; } catch (e) { }
   if (!P) { P = newProj(); await save(); }
   await loadModel().catch(() => { }); refresh(); AR.check();
-  if (!window.CAM3D_NATIVE && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
+  if (!window.CAM3D_NATIVE && !window.CAM3D_DESKTOP && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
 })();
 
 // abrir captura pedida desde la app (?ar=modo)
