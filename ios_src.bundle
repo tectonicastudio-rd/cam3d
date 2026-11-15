@@ -1,0 +1,1001 @@
+=====FILE ios/INSTALAR_EN_IPHONE.txt
+CAM3D v3.0 para iPhone · Tectónica Studio · Todos los derechos reservados
+=========================================================================
+
+El archivo CAM3D_TectonicaStudio_V3.0_iPhone.ipa trae todo el programa dentro:
+funciona sin conectarse a GitHub ni a ningún servidor. La cámara AR usa ARKit.
+
+Apple no permite abrir un .ipa directamente en el iPhone como un APK. Se instala
+desde la PC con Sideloadly (gratis), que lo firma con tu Apple ID.
+
+INSTALAR (PC con Windows)
+1. Instala iTunes (versión de apple.com, no la de Microsoft Store) y Sideloadly (sideloadly.io).
+2. Conecta el iPhone por cable USB, desbloquéalo y toca «Confiar en esta computadora».
+3. Abre Sideloadly y arrastra el archivo CAM3D_TectonicaStudio_V3.0_iPhone.ipa.
+4. Escribe tu Apple ID y toca Start. Si te lo pide, escribe tu contraseña y el código de verificación.
+5. En el iPhone: Ajustes › General › VPN y gestión de dispositivos › toca tu Apple ID › Confiar.
+6. iOS 16 o superior: Ajustes › Privacidad y seguridad › Modo de desarrollador › Activar, reinicia y confirma.
+7. Abre CAM3D. La primera vez acepta los permisos de Cámara, Micrófono y Reconocimiento de voz.
+
+IMPORTANTE
+- Con un Apple ID gratis la instalación dura 7 días. Para renovarla, repite los pasos 2 a 4
+  (tus proyectos se conservan). Con la cuenta Apple Developer dura 1 año y luego va por TestFlight / App Store.
+- Las exportaciones se guardan en la app Archivos › En mi iPhone › CAM3D y se abre el menú Compartir.
+- Compatible con iPhone 6s o posterior, iOS 15 o superior. En modelos con LiDAR el escaneo es más preciso.
+=====FILE ios/project.yml
+name: CAM3D
+options:
+  bundleIdPrefix: com.tectonicastudio
+  deploymentTarget:
+    iOS: "15.0"
+targets:
+  CAM3D:
+    type: application
+    platform: iOS
+    sources:
+      - path: CAM3D
+      - path: www
+        type: folder
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tectonicastudio.cam3d
+        PRODUCT_NAME: CAM3D
+        MARKETING_VERSION: "3.0"
+        CURRENT_PROJECT_VERSION: "300"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_BITCODE: NO
+    info:
+      path: CAM3D/Info.plist
+      properties:
+        CFBundleDisplayName: CAM3D
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UIRequiredDeviceCapabilities: [arm64]
+        UIStatusBarStyle: UIStatusBarStyleLightContent
+        UIViewControllerBasedStatusBarAppearance: true
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        NSCameraUsageDescription: "CAM3D usa la cámara para escanear y medir espacios en realidad aumentada."
+        NSMicrophoneUsageDescription: "CAM3D usa el micrófono para el dictado por voz a la IA 3D."
+        NSSpeechRecognitionUsageDescription: "CAM3D convierte tu voz en texto para darle instrucciones a la IA 3D."
+        NSPhotoLibraryAddUsageDescription: "CAM3D guarda imágenes y renders en tus Fotos."
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        ITSAppUsesNonExemptEncryption: false
+        NSHumanReadableCopyright: "Tectónica Studio. Todos los derechos reservados."
+=====FILE ios/CAM3D/ARCaptureViewController.swift
+// CAM3D v3.0 · Tectónica Studio · Todos los derechos reservados
+// Captura AR nativa con ARKit: planos, medidas, nube de puntos, automático e IA 3D.
+// Devuelve el mismo formato JSON que la versión de Android.
+import UIKit
+import ARKit
+import SceneKit
+import AVFoundation
+
+final class ARCaptureViewController: UIViewController, ARSessionDelegate {
+    var mode = "auto"
+    var onFinish: ((String?) -> Void)?
+
+    private var auto = false
+    private var ai = false
+    private let sceneView = ARSCNView()
+    private let status = UILabel()
+    private let hint = UILabel()
+    private let cross = UILabel()
+    private let toastLabel = UILabel()
+    private let bUndo = UIButton(type: .system)
+    private let bShot = UIButton(type: .custom)
+    private let bDone = UIButton(type: .system)
+    private let bClose = UIButton(type: .system)
+    private var timer: Timer?
+
+    private var cloud: [Float] = []
+    private var col: [UInt8] = []
+    private var vox = Set<Int64>()
+    private var floorY: Float?
+    private var ceilY: Float?
+    private var tagK: [String] = []
+    private var tagY: [Float] = []
+    private var planPts: [SIMD3<Float>] = []
+    private var rooms: [[SIMD3<Float>]] = []
+    private var mPts: [SIMD3<Float>] = []
+    private var scanning = false
+    private var hit: SIMD3<Float>?
+    private var origin: SIMD3<Float>?
+    private var azb = [Int](repeating: 0, count: 36)
+    private var bands = Set<Int>()
+    private var cov: Float = 0
+    private var said50 = false
+    private var said80 = false
+    private var done = false
+    private var finished = false
+    private var lastSay = Date.distantPast
+    private var lastDraw = Date.distantPast
+    private let cloudNode = SCNNode()
+    private let marks = SCNNode()
+    private let tts = AVSpeechSynthesizer()
+    private static let maxPts = 250_000
+
+    override var prefersStatusBarHidden: Bool { true }
+
+    // ------------------------------------------------------------ interfaz
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        auto = mode == "auto" || mode == "ai"
+        ai = mode == "ai"
+        scanning = auto
+        view.backgroundColor = .black
+
+        sceneView.frame = view.bounds
+        sceneView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        sceneView.automaticallyUpdatesLighting = true
+        sceneView.session.delegate = self
+        sceneView.scene.rootNode.addChildNode(cloudNode)
+        sceneView.scene.rootNode.addChildNode(marks)
+        view.addSubview(sceneView)
+
+        style(status, size: 16, bold: true)
+        style(hint, size: 14, bold: false)
+        status.text = modeTitle(mode)
+        hint.text = auto ? "Apunta al piso y recorre el espacio despacio" : "Apunta a una superficie"
+        let top = UIStackView(arrangedSubviews: [status, hint])
+        top.axis = .vertical
+        top.spacing = 6
+        top.alignment = .center
+        top.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(top)
+
+        cross.text = "+"
+        cross.textColor = UIColor(red: 0.91, green: 0.70, blue: 0.19, alpha: 1)
+        cross.font = .systemFont(ofSize: 44, weight: .light)
+        cross.translatesAutoresizingMaskIntoConstraints = false
+        cross.isHidden = auto || mode == "cloud"
+        view.addSubview(cross)
+
+        style(toastLabel, size: 15, bold: true)
+        toastLabel.alpha = 0
+        toastLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(toastLabel)
+
+        bClose.setTitle("✕", for: .normal)
+        bClose.titleLabel?.font = .systemFont(ofSize: 22, weight: .bold)
+        bClose.tintColor = .white
+        bClose.backgroundColor = UIColor(white: 0, alpha: 0.55)
+        bClose.layer.cornerRadius = 22
+        bClose.translatesAutoresizingMaskIntoConstraints = false
+        bClose.addTarget(self, action: #selector(onClose), for: .touchUpInside)
+        view.addSubview(bClose)
+
+        for b in [bUndo, bDone] {
+            b.tintColor = .white
+            b.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+            b.backgroundColor = UIColor(red: 0.024, green: 0.043, blue: 0.086, alpha: 0.75)
+            b.layer.cornerRadius = 23
+            b.translatesAutoresizingMaskIntoConstraints = false
+        }
+        bUndo.setTitle("↶ Deshacer", for: .normal)
+        bDone.setTitle("✓ Listo", for: .normal)
+        bUndo.isHidden = auto
+        bUndo.addTarget(self, action: #selector(onUndo), for: .touchUpInside)
+        bDone.addTarget(self, action: #selector(onDone), for: .touchUpInside)
+
+        bShot.backgroundColor = UIColor(red: 0.91, green: 0.70, blue: 0.19, alpha: 1)
+        bShot.layer.cornerRadius = 39
+        bShot.layer.borderWidth = 4
+        bShot.layer.borderColor = UIColor.white.cgColor
+        bShot.setTitleColor(UIColor(red: 0.024, green: 0.043, blue: 0.086, alpha: 1), for: .normal)
+        bShot.titleLabel?.font = .systemFont(ofSize: 26, weight: .bold)
+        bShot.setTitle(auto ? "■" : (mode == "cloud" ? "▶" : "◯"), for: .normal)
+        bShot.translatesAutoresizingMaskIntoConstraints = false
+        bShot.addTarget(self, action: #selector(onShot), for: .touchUpInside)
+
+        let bar = UIStackView(arrangedSubviews: [bUndo, bShot, bDone])
+        bar.axis = .horizontal
+        bar.alignment = .center
+        bar.spacing = 18
+        bar.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(bar)
+
+        let g = view.safeAreaLayoutGuide
+        NSLayoutConstraint.activate([
+            top.topAnchor.constraint(equalTo: g.topAnchor, constant: 14),
+            top.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            top.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 64),
+            cross.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            cross.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            toastLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            toastLabel.bottomAnchor.constraint(equalTo: bar.topAnchor, constant: -22),
+            toastLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
+            bClose.topAnchor.constraint(equalTo: g.topAnchor, constant: 10),
+            bClose.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
+            bClose.widthAnchor.constraint(equalToConstant: 44),
+            bClose.heightAnchor.constraint(equalToConstant: 44),
+            bUndo.widthAnchor.constraint(equalToConstant: 118),
+            bUndo.heightAnchor.constraint(equalToConstant: 46),
+            bDone.widthAnchor.constraint(equalToConstant: 118),
+            bDone.heightAnchor.constraint(equalToConstant: 46),
+            bShot.widthAnchor.constraint(equalToConstant: 78),
+            bShot.heightAnchor.constraint(equalToConstant: 78),
+            bar.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            bar.bottomAnchor.constraint(equalTo: g.bottomAnchor, constant: -24)
+        ])
+    }
+
+    private func style(_ l: UILabel, size: CGFloat, bold: Bool) {
+        l.textColor = .white
+        l.font = .systemFont(ofSize: size, weight: bold ? .bold : .medium)
+        l.numberOfLines = 0
+        l.textAlignment = .center
+        l.backgroundColor = UIColor(red: 0.024, green: 0.043, blue: 0.086, alpha: 0.7)
+        l.layer.cornerRadius = 12
+        l.layer.masksToBounds = true
+    }
+
+    private func modeTitle(_ m: String) -> String {
+        switch m {
+        case "plan": return "  Plano: toca ◯ en cada esquina del piso  "
+        case "measure": return "  Medir: toca ◯ en el punto A y luego en el B  "
+        case "cloud": return "  Escaneo 3D: toca ▶ y recorre el espacio  "
+        case "ai": return "  IA 3D · captura guiada  "
+        default: return "  Captura automática  "
+        }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if finished || timer != nil { return }
+        guard ARWorldTrackingConfiguration.isSupported else {
+            fail("Este iPhone no es compatible con ARKit (se necesita iPhone 6s o posterior).")
+            return
+        }
+        let st = AVCaptureDevice.authorizationStatus(for: .video)
+        if st == .denied || st == .restricted {
+            fail("CAM3D no tiene permiso de cámara. Abre Ajustes › CAM3D › Cámara y actívala.")
+            return
+        }
+        let c = ARWorldTrackingConfiguration()
+        c.planeDetection = [.horizontal, .vertical]
+        if ARWorldTrackingConfiguration.supportsFrameSemantics(.sceneDepth) { c.frameSemantics.insert(.sceneDepth) }
+        sceneView.session.run(c, options: [.resetTracking, .removeExistingAnchors])
+        UIApplication.shared.isIdleTimerDisabled = true
+        timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in self?.tick() }
+        if auto {
+            say(ai ? "Hola, soy IA 3D. Te voy a guiar. Primero apunta al piso y muévete despacio."
+                   : "Captura automática. Apunta al piso y recorre el espacio despacio.")
+        }
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        timer?.invalidate()
+        sceneView.session.pause()
+        UIApplication.shared.isIdleTimerDisabled = false
+    }
+
+    // ------------------------------------------------------------ ARKit
+    func session(_ session: ARSession, didAdd anchors: [ARAnchor]) { planes(anchors) }
+    func session(_ session: ARSession, didUpdate anchors: [ARAnchor]) { planes(anchors) }
+
+    private func planes(_ anchors: [ARAnchor]) {
+        guard let cam = sceneView.session.currentFrame?.camera.transform.columns.3 else { return }
+        for a in anchors {
+            guard let p = a as? ARPlaneAnchor, p.alignment == .horizontal else { continue }
+            let y = p.transform.columns.3.y
+            var isFloor = y < cam.y - 0.7
+            var isCeil = y > cam.y + 0.3
+            if ARPlaneAnchor.isClassificationSupported {
+                if p.classification == .floor { isFloor = true; isCeil = false }
+                if p.classification == .ceiling { isCeil = true; isFloor = false }
+            }
+            if isFloor && (floorY == nil || y < floorY! - 0.03) {
+                let first = floorY == nil
+                floorY = y
+                tag("Piso", y)
+                if first { DispatchQueue.main.async { self.toast("Piso detectado"); if self.auto { self.say("Piso detectado. Ahora recorre las paredes.") } } }
+            }
+            if isCeil && (ceilY == nil || y > ceilY! + 0.05) {
+                ceilY = y
+                tag("Techo", y)
+            }
+        }
+    }
+
+    private func tag(_ k: String, _ y: Float) {
+        if let i = tagK.firstIndex(of: k) { tagY[i] = y } else { tagK.append(k); tagY.append(y) }
+    }
+
+    func session(_ session: ARSession, cameraDidChangeTrackingState camera: ARCamera) {
+        switch camera.trackingState {
+        case .notAvailable: hint.text = "  Iniciando la cámara…  "
+        case .limited(let r):
+            switch r {
+            case .excessiveMotion: hint.text = "  Muévete más despacio  "
+            case .insufficientFeatures: hint.text = "  Apunta a una zona con más detalle o más luz  "
+            case .initializing, .relocalizing: hint.text = "  Mueve el teléfono despacio de lado a lado  "
+            @unknown default: hint.text = "  Seguimiento limitado  "
+            }
+        case .normal: hint.text = auto ? "  Recorre el espacio despacio  " : "  Apunta a una superficie  "
+        }
+    }
+
+    func session(_ session: ARSession, didFailWithError error: Error) {
+        fail("La cámara AR se detuvo: \(error.localizedDescription)")
+    }
+
+    // ------------------------------------------------------------ muestreo
+    private func raycast(_ p: CGPoint) -> SIMD3<Float>? {
+        guard let q = sceneView.raycastQuery(from: p, allowing: .estimatedPlane, alignment: .any) else { return nil }
+        guard let r = sceneView.session.raycast(q).first else { return nil }
+        let t = r.worldTransform.columns.3
+        return SIMD3<Float>(t.x, t.y, t.z)
+    }
+
+    private func tick() {
+        guard !finished, let frame = sceneView.session.currentFrame else { return }
+        var normal = false
+        if case .normal = frame.camera.trackingState { normal = true }
+        let c = frame.camera.transform.columns.3
+        let cp = SIMD3<Float>(c.x, c.y, c.z)
+        if origin == nil && normal { origin = cp }
+        hit = raycast(CGPoint(x: sceneView.bounds.midX, y: sceneView.bounds.midY))
+        live()
+        guard scanning && normal else { return }
+        let w = sceneView.bounds.width, h = sceneView.bounds.height
+        for i in 0..<6 {
+            for j in 0..<8 {
+                let p = CGPoint(x: w * (CGFloat(i) + 0.5) / 6, y: h * (CGFloat(j) + 0.5) / 8)
+                if let q = raycast(p) { add(q) }
+            }
+        }
+        if let fp = frame.rawFeaturePoints {
+            var k = 0
+            for p in fp.points { if k >= 500 { break }; add(p); k += 1 }
+        }
+        coverage(frame)
+        if Date().timeIntervalSince(lastDraw) > 0.6 { lastDraw = Date(); drawCloud() }
+    }
+
+    private func add(_ p: SIMD3<Float>) {
+        if cloud.count / 3 >= ARCaptureViewController.maxPts { return }
+        let ix = Int64((p.x / 0.04).rounded(.down)) & 0x1FFFFF
+        let iy = Int64((p.y / 0.04).rounded(.down)) & 0x1FFFFF
+        let iz = Int64((p.z / 0.04).rounded(.down)) & 0x1FFFFF
+        let key = ix | (iy << 21) | (iz << 42)
+        if !vox.insert(key).inserted { return }
+        cloud.append(p.x); cloud.append(p.y); cloud.append(p.z)
+        var r: UInt8 = 214, g: UInt8 = 196, b: UInt8 = 170
+        if let fy = floorY {
+            let rel = p.y - fy
+            if rel < 0.08 { r = 150; g = 156; b = 166 }
+            else if let cy = ceilY, p.y > cy - 0.08 { r = 236; g = 236; b = 232 }
+            else if rel > 2.3 { r = 236; g = 236; b = 232 }
+            bands.insert(min(5, max(0, Int(rel / 0.5))))
+        }
+        col.append(r); col.append(g); col.append(b)
+        if let o = origin {
+            let a = atan2(p.z - o.z, p.x - o.x)
+            let bin = min(35, max(0, Int((a + Float.pi) / (2 * Float.pi) * 36)))
+            azb[bin] += 1
+        }
+    }
+
+    private func coverage(_ frame: ARFrame) {
+        let filled = azb.filter { $0 >= 25 }.count
+        cov = Float(filled) / 36 * 0.8 + Float(bands.count) / 6 * 0.2
+        let pct = Int(cov * 100)
+        guard auto else { status.text = "  Escaneo 3D · \(cloud.count / 3) puntos  "; return }
+        status.text = "  \(ai ? "IA 3D" : "Automático") · \(pct)% capturado  "
+        if cov >= 0.5 && !said50 { said50 = true; say("Vas por la mitad. Sigue así.") }
+        if cov >= 0.8 && !said80 { said80 = true; say("Ya casi. Completa las zonas que faltan.") }
+        if cov >= 0.92 && !done { done = true; say("Captura completa. Toca el botón para terminar."); hint.text = "  ✓ Captura completa: toca ■ para terminar  "; return }
+        guard !done, Date().timeIntervalSince(lastSay) > 7 else { return }
+        var msg = ""
+        if floorY == nil { msg = "Apunta al piso" }
+        else if !bands.contains(4) && !bands.contains(5) { msg = "Apunta más arriba, hacia el techo" }
+        else if let o = origin {
+            let f = frame.camera.transform.columns.2
+            let cur = atan2(-f.z, -f.x)
+            var best: Float = 10
+            for i in 0..<36 where azb[i] < 25 {
+                let t = (Float(i) + 0.5) / 36 * 2 * Float.pi - Float.pi
+                var d = t - cur
+                while d > Float.pi { d -= 2 * Float.pi }
+                while d < -Float.pi { d += 2 * Float.pi }
+                if abs(d) < abs(best) { best = d }
+            }
+            _ = o
+            if best < 9 { msg = best < 0 ? "Gira a la izquierda" : "Gira a la derecha" }
+        }
+        if !msg.isEmpty { hint.text = "  \(msg)  "; say(msg) }
+    }
+
+    private func drawCloud() {
+        let n = cloud.count / 3
+        guard n > 0 else { cloudNode.geometry = nil; return }
+        let step = max(1, n / 60000)
+        var verts: [SCNVector3] = []
+        var cols: [Float] = []
+        verts.reserveCapacity(n / step + 1)
+        cols.reserveCapacity((n / step + 1) * 4)
+        var i = 0
+        while i < n {
+            verts.append(SCNVector3(cloud[i * 3], cloud[i * 3 + 1], cloud[i * 3 + 2]))
+            cols.append(Float(col[i * 3]) / 255)
+            cols.append(Float(col[i * 3 + 1]) / 255)
+            cols.append(Float(col[i * 3 + 2]) / 255)
+            cols.append(1)
+            i += step
+        }
+        let vs = SCNGeometrySource(vertices: verts)
+        let cd = cols.withUnsafeBufferPointer { Data(buffer: $0) }
+        let cs = SCNGeometrySource(data: cd, semantic: .color, vectorCount: verts.count, usesFloatComponents: true,
+                                   componentsPerVector: 4, bytesPerComponent: 4, dataOffset: 0, dataStride: 16)
+        let idx: [Int32] = Array(0..<Int32(verts.count))
+        let el = SCNGeometryElement(indices: idx, primitiveType: .point)
+        el.pointSize = 5
+        el.minimumPointScreenSpaceRadius = 1.5
+        el.maximumPointScreenSpaceRadius = 4
+        let g = SCNGeometry(sources: [vs, cs], elements: [el])
+        g.firstMaterial?.lightingModel = .constant
+        cloudNode.geometry = g
+    }
+
+    // reglas en vivo
+    private func live() {
+        if mode == "measure" {
+            if mPts.count % 2 == 1, let h = hit, let a = mPts.last {
+                status.text = String(format: "  %.2f m  ", simd_distance(a, h))
+            } else if mPts.count % 2 == 0 {
+                status.text = mPts.isEmpty ? modeTitle(mode) : "  \(mPts.count / 2) medida(s) · toca ◯ para otra  "
+            }
+        } else if mode == "plan" {
+            if let h = hit, let a = planPts.last {
+                let d = simd_distance(SIMD2<Float>(a.x, a.z), SIMD2<Float>(h.x, h.z))
+                status.text = String(format: "  Esquina %d · tramo %.2f m  ", planPts.count + 1, d)
+            } else if planPts.isEmpty {
+                status.text = rooms.isEmpty ? modeTitle(mode) : "  \(rooms.count) espacio(s) · marca otro o toca Listo  "
+            }
+        }
+        if !auto && mode != "cloud" {
+            cross.textColor = hit == nil ? UIColor(white: 1, alpha: 0.5) : UIColor(red: 0.91, green: 0.70, blue: 0.19, alpha: 1)
+        }
+    }
+
+    // ------------------------------------------------------------ acciones
+    @objc private func onShot() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        if auto {
+            if cov > 0.25 || done { finish() } else { toast("Sigue moviendo el teléfono: \(Int(cov * 100))% capturado") }
+            return
+        }
+        if mode == "cloud" {
+            scanning.toggle()
+            bShot.setTitle(scanning ? "❚❚" : "▶", for: .normal)
+            toast(scanning ? "Escaneando… recorre el espacio despacio" : "Escaneo en pausa")
+            return
+        }
+        guard let h = hit else { toast("Apunta a una superficie"); return }
+        if mode == "plan" {
+            let p = SIMD3<Float>(h.x, floorY ?? h.y, h.z)
+            if planPts.count >= 3 {
+                let dx = p.x - planPts[0].x, dz = p.z - planPts[0].z
+                if (dx * dx + dz * dz).squareRoot() < 0.25 { closeRoom(); return }
+            }
+            planPts.append(p)
+        } else {
+            mPts.append(h)
+            if mPts.count % 2 == 0 {
+                let a = mPts[mPts.count - 2]
+                let t = String(format: "%.2f m", simd_distance(a, h))
+                toast(t)
+                say(t.replacingOccurrences(of: ".", with: ",").replacingOccurrences(of: " m", with: " metros"))
+            }
+        }
+        redraw()
+    }
+
+    private func closeRoom() {
+        guard planPts.count >= 3 else { return }
+        rooms.append(planPts)
+        var a: Float = 0
+        for i in 0..<planPts.count {
+            let p = planPts[i], q = planPts[(i + 1) % planPts.count]
+            a += p.x * q.z - q.x * p.z
+        }
+        let area = String(format: "%.1f m²", abs(a) / 2)
+        toast("Espacio cerrado: \(area)")
+        say("Espacio cerrado, \(area.replacingOccurrences(of: ".", with: ",").replacingOccurrences(of: " m²", with: " metros cuadrados"))")
+        planPts = []
+        redraw()
+    }
+
+    @objc private func onUndo() {
+        if mode == "plan" {
+            if !planPts.isEmpty { planPts.removeLast() } else if !rooms.isEmpty { planPts = rooms.removeLast() }
+        } else if !mPts.isEmpty { mPts.removeLast() }
+        redraw()
+    }
+
+    @objc private func onDone() { finish() }
+    @objc private func onClose() { finish() }
+
+    private func redraw() {
+        marks.childNodes.forEach { $0.removeFromParentNode() }
+        let gold = UIColor(red: 0.91, green: 0.70, blue: 0.19, alpha: 1)
+        let cyan = UIColor(red: 0.13, green: 0.83, blue: 0.93, alpha: 1)
+        for r in rooms {
+            for i in 0..<r.count { marks.addChildNode(line(r[i], r[(i + 1) % r.count], cyan)); marks.addChildNode(dot(r[i], cyan)) }
+        }
+        for i in 0..<planPts.count {
+            marks.addChildNode(dot(planPts[i], gold))
+            if i > 0 { marks.addChildNode(line(planPts[i - 1], planPts[i], gold)) }
+        }
+        for i in 0..<mPts.count {
+            marks.addChildNode(dot(mPts[i], gold))
+            if i % 2 == 1 { marks.addChildNode(line(mPts[i - 1], mPts[i], gold)) }
+        }
+    }
+
+    private func dot(_ p: SIMD3<Float>, _ c: UIColor) -> SCNNode {
+        let s = SCNSphere(radius: 0.015)
+        s.firstMaterial?.diffuse.contents = c
+        s.firstMaterial?.lightingModel = .constant
+        let n = SCNNode(geometry: s)
+        n.simdPosition = p
+        return n
+    }
+
+    // tramo como cilindro delgado para que se vea bien
+    private func line(_ a: SIMD3<Float>, _ b: SIMD3<Float>, _ c: UIColor) -> SCNNode {
+        let len = simd_distance(a, b)
+        let cy = SCNCylinder(radius: 0.005, height: CGFloat(max(len, 0.001)))
+        cy.firstMaterial?.diffuse.contents = c
+        cy.firstMaterial?.lightingModel = .constant
+        let n = SCNNode(geometry: cy)
+        n.simdPosition = (a + b) / 2
+        let dir = simd_normalize(b - a)
+        let up = SIMD3<Float>(0, 1, 0)
+        let axis = simd_cross(up, dir)
+        let ang = acos(max(-1, min(1, simd_dot(up, dir))))
+        if simd_length(axis) > 1e-5 { n.simdOrientation = simd_quatf(angle: ang, axis: simd_normalize(axis)) }
+        else if ang > 1 { n.simdOrientation = simd_quatf(angle: Float.pi, axis: SIMD3<Float>(1, 0, 0)) }
+        return n
+    }
+
+    private func toast(_ t: String) {
+        toastLabel.text = "  \(t)  "
+        toastLabel.layer.removeAllAnimations()
+        toastLabel.alpha = 1
+        UIView.animate(withDuration: 0.4, delay: 2.2, options: [.allowUserInteraction], animations: { self.toastLabel.alpha = 0 })
+    }
+
+    private func say(_ t: String) {
+        lastSay = Date()
+        tts.stopSpeaking(at: .immediate)
+        let u = AVSpeechUtterance(string: t)
+        u.voice = AVSpeechSynthesisVoice(language: "es-MX") ?? AVSpeechSynthesisVoice(language: "es-ES")
+        tts.speak(u)
+    }
+
+    // ------------------------------------------------------------ resultado
+    private func num(_ v: Float) -> String {
+        let r = (Double(v) * 1000).rounded() / 1000
+        if r == r.rounded() { return String(Int(r)) }
+        return String(r)
+    }
+
+    private func pt(_ p: SIMD3<Float>) -> String {
+        return "{\"x\":" + num(p.x) + ",\"y\":" + num(p.y) + ",\"z\":" + num(p.z) + "}"
+    }
+
+    private func finish() {
+        if finished { return }
+        if mode == "plan" && planPts.count >= 3 { closeRoom() }
+        finished = true
+        timer?.invalidate()
+        let md = ai ? "ai" : (auto ? "auto" : mode)
+        var s = "{\"mode\":\"" + md + "\",\"floorY\":"
+        s += floorY.map { num($0) } ?? "null"
+        var tg: [String] = []
+        for i in 0..<tagK.count { tg.append("{\"k\":\"" + tagK[i] + "\",\"y\":" + num(tagY[i]) + "}") }
+        s += ",\"tags\":[" + tg.joined(separator: ",") + "]"
+        var rs: [String] = []
+        for r in rooms {
+            let ps = r.map { "{\"x\":" + num($0.x) + ",\"z\":" + num($0.z) + "}" }
+            rs.append("{\"y\":" + num(r[0].y) + ",\"pts\":[" + ps.joined(separator: ",") + "]}")
+        }
+        s += ",\"rooms\":[" + rs.joined(separator: ",") + "]"
+        var ms: [String] = []
+        var i = 0
+        while i + 1 < mPts.count { ms.append("{\"a\":" + pt(mPts[i]) + ",\"b\":" + pt(mPts[i + 1]) + "}"); i += 2 }
+        s += ",\"measures\":[" + ms.joined(separator: ",") + "]"
+        s += ",\"cloud\":[" + cloud.map { num($0) }.joined(separator: ",") + "]"
+        s += ",\"col\":[" + col.map { String($0) }.joined(separator: ",") + "]}"
+        sceneView.session.pause()
+        tts.stopSpeaking(at: .immediate)
+        let cb = onFinish
+        dismiss(animated: true) { cb?(s) }
+    }
+
+    private func fail(_ msg: String) {
+        if finished { return }
+        finished = true
+        timer?.invalidate()
+        sceneView.session.pause()
+        let a = UIAlertController(title: "Cámara AR", message: msg, preferredStyle: .alert)
+        a.addAction(UIAlertAction(title: "Entendido", style: .default) { _ in
+            let cb = self.onFinish
+            self.dismiss(animated: true) { cb?(nil) }
+        })
+        present(a, animated: true)
+    }
+}
+=====FILE ios/CAM3D/AppDelegate.swift
+// CAM3D v3.0 · Tectónica Studio · Todos los derechos reservados
+import UIKit
+import AVFoundation
+
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate {
+    var window: UIWindow?
+
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+        let w = UIWindow(frame: UIScreen.main.bounds)
+        w.backgroundColor = UIColor(red: 0.024, green: 0.043, blue: 0.086, alpha: 1)
+        w.rootViewController = WebViewController()
+        w.makeKeyAndVisible()
+        window = w
+        return true
+    }
+}
+=====FILE ios/CAM3D/WebViewController.swift
+// CAM3D v3.0 · Tectónica Studio · Todos los derechos reservados
+// App local: todo el programa va dentro de la app (carpeta www) y se sirve con cam3d://localhost
+import UIKit
+import WebKit
+import AVFoundation
+import Speech
+
+// ------------------------------------------------------------ archivos locales
+final class LocalAssetHandler: NSObject, WKURLSchemeHandler {
+    let root: URL
+    init(root: URL) { self.root = root }
+
+    static func mime(_ ext: String) -> String {
+        switch ext.lowercased() {
+        case "html", "htm": return "text/html; charset=utf-8"
+        case "js", "mjs": return "text/javascript; charset=utf-8"
+        case "css": return "text/css; charset=utf-8"
+        case "json", "webmanifest": return "application/json"
+        case "png": return "image/png"
+        case "jpg", "jpeg": return "image/jpeg"
+        case "webp": return "image/webp"
+        case "svg": return "image/svg+xml"
+        case "gif": return "image/gif"
+        case "wasm": return "application/wasm"
+        case "glb": return "model/gltf-binary"
+        case "txt": return "text/plain; charset=utf-8"
+        default: return "application/octet-stream"
+        }
+    }
+
+    func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
+        guard let url = urlSchemeTask.request.url else { return }
+        var path = url.path
+        if path.isEmpty || path == "/" { path = "/index.html" }
+        let file = root.appendingPathComponent(String(path.dropFirst())).standardizedFileURL
+        let inside = file.path.hasPrefix(root.standardizedFileURL.path)
+        if inside, let data = try? Data(contentsOf: file) {
+            let headers = ["Content-Type": LocalAssetHandler.mime(file.pathExtension),
+                           "Content-Length": String(data.count),
+                           "Access-Control-Allow-Origin": "*",
+                           "Cache-Control": "no-cache"]
+            if let r = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: headers) {
+                urlSchemeTask.didReceive(r)
+            }
+            urlSchemeTask.didReceive(data)
+            urlSchemeTask.didFinish()
+        } else {
+            if let r = HTTPURLResponse(url: url, statusCode: 404, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "text/plain"]) {
+                urlSchemeTask.didReceive(r)
+            }
+            urlSchemeTask.didReceive(Data())
+            urlSchemeTask.didFinish()
+        }
+    }
+
+    func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {}
+}
+
+// evita ciclo de retención con el manejador de mensajes
+final class WeakHandler: NSObject, WKScriptMessageHandler {
+    weak var target: WKScriptMessageHandler?
+    init(_ t: WKScriptMessageHandler) { target = t }
+    func userContentController(_ c: WKUserContentController, didReceive m: WKScriptMessage) {
+        target?.userContentController(c, didReceive: m)
+    }
+}
+
+func jsString(_ s: String) -> String {
+    if let d = try? JSONSerialization.data(withJSONObject: [s], options: []), let t = String(data: d, encoding: .utf8) {
+        return String(t.dropFirst().dropLast())
+    }
+    return "\"\""
+}
+
+// ------------------------------------------------------------ puente con la app web
+let bridgeJS = """
+(function(){
+  var H = window.webkit.messageHandlers.cam3d, R = null;
+  window.__CAM3D_SET_RESULT = function(s){ R = s; };
+  window.CAM3D_IOS = true;
+  window.CAM3DNative = {
+    startAR: function(m){ H.postMessage({op:'startAR', mode:String(m||'auto')}); },
+    takeResult: function(){ var r = R; R = null; return r || ''; },
+    saveFile: function(n, m, b){ H.postMessage({op:'saveFile', name:String(n), mime:String(m||''), b64:String(b||'')}); },
+    listen: function(l, i){ H.postMessage({op:'listen', lang:String(l||'es-ES'), interim:!!i}); },
+    stopListen: function(){ H.postMessage({op:'stopListen'}); },
+    speak: function(t, r){ H.postMessage({op:'speak', text:String(t||''), rate:+r||1}); },
+    stopSpeak: function(){ H.postMessage({op:'stopSpeak'}); },
+    version: function(){ return '3.0-ios'; },
+    hasCamera: function(){ return true; }
+  };
+  var TXT = '✅ Cámara AR nativa del iPhone (ARKit). En los modelos con LiDAR el escaneo usa el sensor de profundidad.';
+  function fix(){ var e = document.getElementById('arStatus'); if (e && /ARCore|Google Play/.test(e.innerHTML)) e.innerHTML = TXT; }
+  document.addEventListener('DOMContentLoaded', function(){
+    fix(); try { new MutationObserver(fix).observe(document.body, {subtree:true, childList:true, characterData:true}); } catch(e){}
+  });
+})();
+"""
+
+final class WebViewController: UIViewController, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
+    var web: WKWebView!
+    let synth = AVSpeechSynthesizer()
+    let dictation = Dictation()
+
+    override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = UIColor(red: 0.024, green: 0.043, blue: 0.086, alpha: 1)
+
+        let cfg = WKWebViewConfiguration()
+        let root = Bundle.main.url(forResource: "www", withExtension: nil) ?? Bundle.main.bundleURL
+        cfg.setURLSchemeHandler(LocalAssetHandler(root: root), forURLScheme: "cam3d")
+        cfg.allowsInlineMediaPlayback = true
+        cfg.mediaTypesRequiringUserActionForPlayback = []
+        cfg.websiteDataStore = .default()
+        let uc = WKUserContentController()
+        uc.addUserScript(WKUserScript(source: bridgeJS, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        uc.add(WeakHandler(self), name: "cam3d")
+        cfg.userContentController = uc
+
+        web = WKWebView(frame: .zero, configuration: cfg)
+        web.isOpaque = false
+        web.backgroundColor = view.backgroundColor
+        web.scrollView.backgroundColor = view.backgroundColor
+        web.scrollView.contentInsetAdjustmentBehavior = .never
+        web.scrollView.bounces = false
+        web.navigationDelegate = self
+        web.uiDelegate = self
+        if #available(iOS 16.4, *) { web.isInspectable = true }
+        web.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(web)
+        NSLayoutConstraint.activate([
+            web.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            web.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            web.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            web.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
+
+        dictation.emit = { [weak self] type, text, fin in
+            self?.js("window.CAM3DSpeech && CAM3DSpeech(\(jsString(type)), \(jsString(text)), \(fin ? "true" : "false"))")
+        }
+
+        if let u = URL(string: "cam3d://localhost/index.html") { web.load(URLRequest(url: u)) }
+    }
+
+    func js(_ code: String) {
+        DispatchQueue.main.async { self.web.evaluateJavaScript(code, completionHandler: nil) }
+    }
+
+    // mensajes que envía la app web
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard let d = message.body as? [String: Any], let op = d["op"] as? String else { return }
+        switch op {
+        case "startAR":
+            startAR(d["mode"] as? String ?? "auto")
+        case "saveFile":
+            saveFile(name: d["name"] as? String ?? "CAM3D", b64: d["b64"] as? String ?? "")
+        case "listen":
+            synth.stopSpeaking(at: .immediate)
+            dictation.start(lang: d["lang"] as? String ?? "es-ES", interim: d["interim"] as? Bool ?? true)
+        case "stopListen":
+            dictation.finish()
+        case "speak":
+            speak(d["text"] as? String ?? "", rate: (d["rate"] as? Double) ?? 1)
+        case "stopSpeak":
+            synth.stopSpeaking(at: .immediate)
+        default:
+            break
+        }
+    }
+
+    func speak(_ text: String, rate: Double) {
+        guard !text.isEmpty else { return }
+        synth.stopSpeaking(at: .immediate)
+        let u = AVSpeechUtterance(string: text)
+        u.voice = AVSpeechSynthesisVoice(language: "es-MX") ?? AVSpeechSynthesisVoice(language: "es-ES")
+        u.rate = Float(max(0.3, min(1.6, rate))) * AVSpeechUtteranceDefaultSpeechRate
+        synth.speak(u)
+    }
+
+    // cámara AR nativa (ARKit)
+    func startAR(_ mode: String) {
+        guard presentedViewController == nil else { return }
+        synth.stopSpeaking(at: .immediate)
+        let vc = ARCaptureViewController()
+        vc.mode = mode
+        vc.modalPresentationStyle = .fullScreen
+        vc.onFinish = { [weak self] json in
+            guard let self = self, let json = json else { return }
+            self.js("window.__CAM3D_SET_RESULT(\(jsString(json))); window.CAM3DNativeAR && window.CAM3DNativeAR();")
+        }
+        present(vc, animated: true)
+    }
+
+    // guardar exportaciones: carpeta Archivos › CAM3D y menú Compartir
+    func saveFile(name: String, b64: String) {
+        guard let data = Data(base64Encoded: b64, options: .ignoreUnknownCharacters) else { return }
+        let safe = name.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: ":", with: "_")
+        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("CAM3D", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent(safe.isEmpty ? "CAM3D" : safe)
+        do { try data.write(to: url, options: .atomic) } catch { return }
+        let av = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        if let p = av.popoverPresentationController {
+            p.sourceView = view
+            p.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1)
+            p.permittedArrowDirections = []
+        }
+        DispatchQueue.main.async { self.present(av, animated: true) }
+    }
+
+    // enlaces externos se abren en Safari
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        if let u = navigationAction.request.url, let s = u.scheme?.lowercased(), s != "cam3d", s != "about", s != "blob", s != "data" {
+            if navigationAction.navigationType == .linkActivated || navigationAction.targetFrame == nil || navigationAction.targetFrame?.isMainFrame == true {
+                UIApplication.shared.open(u)
+                decisionHandler(.cancel)
+                return
+            }
+        }
+        decisionHandler(.allow)
+    }
+
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        if let u = navigationAction.request.url, u.scheme?.lowercased() != "cam3d" { UIApplication.shared.open(u) }
+        return nil
+    }
+
+    @available(iOS 15.0, *)
+    func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType, decisionHandler: @escaping (WKPermissionDecision) -> Void) {
+        decisionHandler(.grant)
+    }
+
+    func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
+        let a = UIAlertController(title: "CAM3D", message: message, preferredStyle: .alert)
+        a.addAction(UIAlertAction(title: "OK", style: .default) { _ in completionHandler() })
+        present(a, animated: true)
+    }
+
+    func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
+        let a = UIAlertController(title: "CAM3D", message: message, preferredStyle: .alert)
+        a.addAction(UIAlertAction(title: "Cancelar", style: .cancel) { _ in completionHandler(false) })
+        a.addAction(UIAlertAction(title: "OK", style: .default) { _ in completionHandler(true) })
+        present(a, animated: true)
+    }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) { webView.reload() }
+}
+
+// ------------------------------------------------------------ dictado por voz (Speech)
+final class Dictation {
+    var emit: ((String, String, Bool) -> Void)?
+    private let engine = AVAudioEngine()
+    private var request: SFSpeechAudioBufferRecognitionRequest?
+    private var task: SFSpeechRecognitionTask?
+    private var recognizer: SFSpeechRecognizer?
+    private var silence: Timer?
+    private var cap: Timer?
+    private var active = false
+
+    func start(lang: String, interim: Bool) {
+        if active { finish(); return }
+        SFSpeechRecognizer.requestAuthorization { st in
+            DispatchQueue.main.async {
+                guard st == .authorized else { self.fail("not-allowed"); return }
+                AVAudioSession.sharedInstance().requestRecordPermission { ok in
+                    DispatchQueue.main.async {
+                        if ok { self.begin(lang: lang, interim: interim) } else { self.fail("not-allowed") }
+                    }
+                }
+            }
+        }
+    }
+
+    private func fail(_ e: String) {
+        emit?("error", e, false)
+        emit?("end", "", false)
+    }
+
+    private func begin(lang: String, interim: Bool) {
+        let rec = SFSpeechRecognizer(locale: Locale(identifier: lang)) ?? SFSpeechRecognizer(locale: Locale(identifier: "es-ES"))
+        guard let r = rec, r.isAvailable else { fail("network"); return }
+        recognizer = r
+        do {
+            let s = AVAudioSession.sharedInstance()
+            try s.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth])
+            try s.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch { fail("audio-capture"); return }
+        let req = SFSpeechAudioBufferRecognitionRequest()
+        req.shouldReportPartialResults = interim
+        request = req
+        let input = engine.inputNode
+        let fmt = input.outputFormat(forBus: 0)
+        input.removeTap(onBus: 0)
+        input.installTap(onBus: 0, bufferSize: 1024, format: fmt) { buf, _ in req.append(buf) }
+        engine.prepare()
+        do { try engine.start() } catch { input.removeTap(onBus: 0); restoreAudio(); fail("audio-capture"); return }
+        active = true
+        emit?("start", "", false)
+        task = r.recognitionTask(with: req) { [weak self] res, err in
+            DispatchQueue.main.async {
+                guard let self = self, self.active else { return }
+                if let res = res {
+                    self.emit?("result", res.bestTranscription.formattedString, res.isFinal)
+                    if res.isFinal { self.stop(); return }
+                    self.armSilence()
+                }
+                if err != nil { self.stop() }
+            }
+        }
+        armSilence()
+        cap = Timer.scheduledTimer(withTimeInterval: 15, repeats: false) { [weak self] _ in self?.finish() }
+    }
+
+    private func armSilence() {
+        silence?.invalidate()
+        silence = Timer.scheduledTimer(withTimeInterval: 1.8, repeats: false) { [weak self] _ in self?.finish() }
+    }
+
+    // termina de escuchar y espera el resultado final
+    func finish() {
+        guard active else { return }
+        silence?.invalidate(); cap?.invalidate()
+        if engine.isRunning { engine.stop(); engine.inputNode.removeTap(onBus: 0) }
+        request?.endAudio()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in self?.stop() }
+    }
+
+    private func stop() {
+        guard active else { return }
+        active = false
+        silence?.invalidate(); cap?.invalidate()
+        if engine.isRunning { engine.stop(); engine.inputNode.removeTap(onBus: 0) }
+        request?.endAudio(); task?.cancel()
+        request = nil; task = nil
+        restoreAudio()
+        emit?("end", "", false)
+    }
+
+    private func restoreAudio() {
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+    }
+}
