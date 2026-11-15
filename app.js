@@ -197,13 +197,25 @@ const AR = {
     this.draw = new THREE.Group(); s.add(this.draw);
     this.tapeGeo = new THREE.BufferGeometry(); this.tapeGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(1200 * 3), 3)); this.tapeGeo.setDrawRange(0, 0); this.tape = new THREE.LineSegments(this.tapeGeo, new THREE.LineBasicMaterial({ color: 0x7cf3ff })); this.tape.frustumCulled = false; s.add(this.tape);
     const cg = new THREE.BufferGeometry(); this.cloudPos = new Float32Array(600000 * 3); this.cloudCol = new Float32Array(600000 * 3); cg.setAttribute('position', new THREE.BufferAttribute(this.cloudPos, 3)); cg.setAttribute('color', new THREE.BufferAttribute(this.cloudCol, 3)); cg.setDrawRange(0, 0); this.cloudGeo = cg; s.add(new THREE.Points(cg, new THREE.PointsMaterial({ size: 0.01, vertexColors: true })));
-    const opts = { requiredFeatures: ['hit-test'], optionalFeatures: ['dom-overlay', 'depth-sensing', 'anchors', 'plane-detection', 'light-estimation'], domOverlay: { root: $('#ar') }, depthSensing: { usagePreference: ['cpu-optimized'], dataFormatPreference: ['luminance-alpha', 'float32'] } };
-    try { this.session = await navigator.xr.requestSession('immersive-ar', opts); } catch (e) { r.domElement.remove(); toast('No se pudo iniciar la cámara AR: ' + e.message, 5000); return; }
+    const ov = { root: $('#ar') }, dp = { usagePreference: ['cpu-optimized'], dataFormatPreference: ['luminance-alpha'] };
+    // cada teléfono soporta funciones distintas: se prueba de la configuración más completa a la más simple
+    const configs = [
+      { requiredFeatures: ['hit-test'], optionalFeatures: ['dom-overlay', 'depth-sensing', 'anchors'], domOverlay: ov, depthSensing: dp },
+      { requiredFeatures: ['hit-test'], optionalFeatures: ['dom-overlay', 'depth-sensing'], domOverlay: ov, depthSensing: { usagePreference: ['cpu-optimized', 'gpu-optimized'], dataFormatPreference: ['luminance-alpha', 'float32'] } },
+      { requiredFeatures: ['hit-test'], optionalFeatures: ['dom-overlay'], domOverlay: ov },
+      { requiredFeatures: ['hit-test', 'dom-overlay'], domOverlay: ov },
+      { requiredFeatures: ['hit-test'] },
+      { optionalFeatures: ['hit-test', 'dom-overlay'], domOverlay: ov },
+      {}];
+    let lastErr = null; this.session = null;
+    let saved = -1; try { saved = +(localStorage.cam3dXR ?? -1); } catch (e) { } const order = configs.map((c, k) => k); if (saved >= 0 && saved < configs.length) { order.splice(order.indexOf(saved), 1); order.unshift(saved); }
+    for (const k of order) { const cfg = configs[k]; try { this.session = await navigator.xr.requestSession('immersive-ar', cfg); try { localStorage.cam3dXR = k; } catch (e) { } break; } catch (e) { lastErr = e; if (e && e.name === 'NotAllowedError' && /gesture|activation/i.test(e.message || '')) break; } }
+    if (!this.session) { r.domElement.remove(); try { speechSynthesis.cancel(); } catch (e) { } toast('No se pudo iniciar la cámara AR' + (lastErr ? ' (' + lastErr.message + ')' : '') + '. Verifica que "Servicios de Google Play para RA" esté instalado y actualizado, y que la app tenga permiso de cámara.', 7000); return; }
     const ses = this.session; this.depth = !!(ses.enabledFeatures && ses.enabledFeatures.includes('depth-sensing'));
     $('#ar').style.display = 'block'; this.setMode(mode);
     r.xr.setReferenceSpaceType('local'); await r.xr.setSession(ses);
-    this.ref = await ses.requestReferenceSpace('local'); const viewerSpace = await ses.requestReferenceSpace('viewer'); this.hts = await ses.requestHitTestSource({ space: viewerSpace });
-    this.mhts = []; if (this.auto && !this.depth && window.XRRay) { for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) { if (!i && !j) continue; try { this.mhts.push(await ses.requestHitTestSource({ space: viewerSpace, offsetRay: new XRRay({ x: 0, y: 0, z: 0, w: 1 }, { x: i * 0.18, y: j * 0.24, z: -1, w: 0 }) })); } catch (e) { } } }
+    this.ref = await ses.requestReferenceSpace('local'); const viewerSpace = await ses.requestReferenceSpace('viewer'); try { this.hts = await ses.requestHitTestSource({ space: viewerSpace }); } catch (e) { this.hts = null; toast('Este teléfono no permite detectar superficies con la cámara', 5000); }
+    this.mhts = []; if (this.auto && !this.depth && this.hts && window.XRRay) { for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) { if (!i && !j) continue; try { this.mhts.push(await ses.requestHitTestSource({ space: viewerSpace, offsetRay: new XRRay({ x: 0, y: 0, z: 0, w: 1 }, { x: i * 0.18, y: j * 0.24, z: -1, w: 0 }) })); } catch (e) { } } }
     document.body.classList.toggle('ar-auto', this.auto); document.body.classList.toggle('ar-ai', !!this.ai); if (this.ai) this.say('Hola, soy la IA 3D de CAM3D. Apunta al piso y gira despacio a tu alrededor. Yo te guío.'); this.origin = null; if (this.auto) { this.done = false; $('#autoPct').textContent = '0%'; window.SFX && SFX.play('scan'); }
     ses.addEventListener('end', () => this.cleanup());
     ses.addEventListener('select', () => this.capture());
